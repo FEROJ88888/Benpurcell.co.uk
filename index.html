@@ -1,10 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>My Site</title>
+    <meta charset="UTF-8">
+    <title>Customizable Tab Website</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #222;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 64px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+        .logo-img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            background: #fff3;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        nav.tabs {
+            flex: 1;
+            margin-left: 32px;
+        }
+        nav.tabs ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        nav.tabs li {
+            margin: 0 12px;
+        }
+        nav.tabs a {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        nav.tabs a:hover, nav.tabs .active a {
+            background: #444;
+        }
+        .user-actions {
+            display: flex;
+            align-items: center;
+        }
+        .user-actions button {
+            background: #fff;
+            color: #222;
+            border: none;
+            outline: none;
+            padding: 8px 16px;
+            margin-left: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .user-actions button:hover {
+            background: #ddd;
+        }
+        main {
+            flex: 1 0 auto;
+            background: #fafafa;
+            padding: 0;
+        }
+        footer {
+            background: #222;
+            color: #fff;
+            text-align: center;
+            padding: 20px 0;
+            flex-shrink: 0;
+        }
+    </style>
+    <script>
+        // Example: basic script to simulate log in/out and update user info
+        document.addEventListener("DOMContentLoaded", function() {
+            const userActions = document.getElementById('user-actions');
+            let userName = null;
+
+            function renderUserActions() {
+                if (userName) {
+                    userActions.innerHTML = `
+                        <span>Welcome, <strong>${userName}</strong></span>
+                        <button id="logout-btn">Logout</button>
+                    `;
+                    document.getElementById('logout-btn').onclick = function() {
+                        userName = null;
+                        renderUserActions();
+                    }
+                } else {
+                    userActions.innerHTML = `
+                        <button id="login-btn">Login</button>
+                        <button id="signup-btn">Sign Up</button>
+                    `;
+                    document.getElementById('login-btn').onclick = function() {
+                        userName = "DemoUser";
+                        renderUserActions();
+                    }
+                    document.getElementById('signup-btn').onclick = function() {
+                        userName = "NewUser";
+                        renderUserActions();
+                    }
+                }
+            }
+
+            renderUserActions();
+        });
+    </script>
 </head>
 <body>
-  <h1>Hello</h1>
-  <p>This is my website.</p>
+    <header>
+        <div class="logo">
+            <div class="logo-img">
+                <!-- Replace below with your logo SVG or IMG -->
+                <span style="font-size:24px;">🌟</span>
+            </div>
+            <span>BrandName</span>
+        </div>
+        <nav class="tabs">
+            <ul>
+                <li class="active"><a href="#">Home</a></li>
+                <li><a href="#">Features</a></li>
+                <li><a href="#">Pricing</a></li>
+                <li><a href="#">About</a></li>
+            </ul>
+        </nav>
+        <div class="user-actions" id="user-actions"></div>
+    </header>
+    <main>
+        <!-- Main content goes here -->
+    </main>
+    <footer>
+        &copy; 2024 BrandName. All rights reserved.
+    </footer>
 </body>
 </html>
+
