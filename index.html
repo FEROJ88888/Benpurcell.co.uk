@@ -71,7 +71,87 @@
                 <p class="hero-sub">Welcome to my corner of the internet. Explore, connect, and get inspired.</p>
             </div>
         </section>
+
     </main>
+
+    <div class="chat-widget">
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <span>Benguin</span>
+                <button class="chat-close" id="chat-close">✕</button>
+            </div>
+            <div class="chat-box" id="chat-box"></div>
+            <div class="chat-input-row">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Say something...">
+                <button class="chat-send" id="chat-send">Send</button>
+            </div>
+        </div>
+        <button class="chat-toggle" id="chat-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="28" height="28">
+                <path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        const NGROK_URL = "https://props-radish-nintendo.ngrok-free.dev";
+        const API_KEY = "secretkey";
+
+        const chatBox = document.getElementById("chat-box");
+        const chatInput = document.getElementById("chat-input");
+        const chatSend = document.getElementById("chat-send");
+        const chatWindow = document.getElementById("chat-window");
+        const chatToggle = document.getElementById("chat-toggle");
+        const chatClose = document.getElementById("chat-close");
+
+        chatToggle.addEventListener("click", () => {
+            chatWindow.classList.toggle("open");
+            if (chatWindow.classList.contains("open")) chatInput.focus();
+        });
+        chatClose.addEventListener("click", () => chatWindow.classList.remove("open"));
+
+        function appendMessage(sender, text) {
+            const msg = document.createElement("div");
+            msg.classList.add("chat-message", sender);
+            msg.innerHTML = `<span class="chat-bubble">${text}</span>`;
+            chatBox.appendChild(msg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const prompt = chatInput.value.trim();
+            if (!prompt) return;
+
+            appendMessage("user", prompt);
+            chatInput.value = "";
+            chatSend.disabled = true;
+
+            appendMessage("ai", "...");
+
+            try {
+                const res = await fetch(`${NGROK_URL}/generate`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-key": API_KEY
+                    },
+                    body: JSON.stringify({ prompt, personality: "benguin" })
+                });
+
+                const data = await res.json();
+                chatBox.lastChild.querySelector(".chat-bubble").textContent = data.response;
+            } catch (err) {
+                chatBox.lastChild.querySelector(".chat-bubble").textContent = "Something went wrong. Is the server running?";
+            }
+
+            chatSend.disabled = false;
+        }
+
+        chatSend.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keydown", e => {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
     <footer>
         <p>
             &copy; 2026 Ben Purcell. All rights reserved.
