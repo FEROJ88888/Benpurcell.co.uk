@@ -150,8 +150,8 @@ main {
     gap: 12px;
 }
 .chat-toggle {
-    width: 60px;
-    height: 60px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
     background: #e94560;
     border: none;
@@ -161,6 +161,8 @@ main {
     justify-content: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     transition: background 0.2s, transform 0.2s;
+    padding: 0;
+    overflow: hidden;
 }
 .chat-toggle:hover {
     background: #0f3460;
@@ -217,6 +219,15 @@ main {
 }
 .chat-message.ai {
     justify-content: flex-start;
+    align-items: flex-end;
+    gap: 8px;
+}
+.chat-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 .chat-bubble {
     max-width: 78%;
