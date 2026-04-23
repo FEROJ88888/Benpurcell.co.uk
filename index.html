@@ -87,9 +87,7 @@
             </div>
         </div>
         <button class="chat-toggle" id="chat-toggle">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="28" height="28">
-                <path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>
-            </svg>
+            <img src="./assets/benguin.png" alt="Benguin" style="width:44px;height:44px;object-fit:contain;border-radius:50%;">
         </button>
     </div>
 
@@ -113,7 +111,11 @@
         function appendMessage(sender, text) {
             const msg = document.createElement("div");
             msg.classList.add("chat-message", sender);
-            msg.innerHTML = `<span class="chat-bubble">${text}</span>`;
+            if (sender === "ai") {
+                msg.innerHTML = `<img src="./assets/benguin.png" class="chat-avatar" alt="Benguin"><span class="chat-bubble">${text}</span>`;
+            } else {
+                msg.innerHTML = `<span class="chat-bubble">${text}</span>`;
+            }
             chatBox.appendChild(msg);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
