@@ -4,93 +4,7 @@
     <meta charset="UTF-8">
     <title>The Home of Ben Purcell</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        header {
-            background: #222;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 32px;
-            height: 64px;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-        }
-        .logo-img {
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
-            background: #fff3;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        nav.tabs {
-            flex: 1;
-            margin-left: 32px;
-        }
-        nav.tabs ul {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-        nav.tabs li {
-            margin: 0 12px;
-        }
-        nav.tabs a {
-            color: #fff;
-            text-decoration: none;
-            padding: 10px 16px;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-        nav.tabs a:hover, nav.tabs .active a {
-            background: #444;
-        }
-        .user-actions {
-            display: flex;
-            align-items: center;
-        }
-        .user-actions button {
-            background: #fff;
-            color: #222;
-            border: none;
-            outline: none;
-            padding: 8px 16px;
-            margin-left: 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .user-actions button:hover {
-            background: #ddd;
-        }
-        main {
-            flex: 1 0 auto;
-            background: #fafafa;
-            padding: 0;
-        }
-        footer {
-            background: #222;
-            color: #fff;
-            text-align: center;
-            padding: 20px 0;
-            flex-shrink: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="./assets/style.css">
     <script>
         // Example: basic script to simulate log in/out and update user info
         document.addEventListener("DOMContentLoaded", function() {
@@ -147,8 +61,97 @@
         <div class="user-actions" id="user-actions"></div>
     </header>
     <main>
-        <!-- Main content goes here -->
+        <section class="hero">
+            <div class="hero-image-wrap">
+                <img src="./assets/bensuit.png" alt="Ben Purcell" class="hero-img">
+            </div>
+            <div class="hero-text">
+                <h1>Ben Purcell</h1>
+                <p class="hero-quote">"The only way to do great work is to love what you do."</p>
+                <p class="hero-sub">Welcome to my corner of the internet. Explore, connect, and get inspired.</p>
+            </div>
+        </section>
+
     </main>
+
+    <div class="chat-widget">
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <span>Benguin</span>
+                <button class="chat-close" id="chat-close">✕</button>
+            </div>
+            <div class="chat-box" id="chat-box"></div>
+            <div class="chat-input-row">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Say something...">
+                <button class="chat-send" id="chat-send">Send</button>
+            </div>
+        </div>
+        <button class="chat-toggle" id="chat-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="28" height="28">
+                <path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        const NGROK_URL = "https://props-radish-nintendo.ngrok-free.dev";
+        const API_KEY = "secretkey";
+
+        const chatBox = document.getElementById("chat-box");
+        const chatInput = document.getElementById("chat-input");
+        const chatSend = document.getElementById("chat-send");
+        const chatWindow = document.getElementById("chat-window");
+        const chatToggle = document.getElementById("chat-toggle");
+        const chatClose = document.getElementById("chat-close");
+
+        chatToggle.addEventListener("click", () => {
+            chatWindow.classList.toggle("open");
+            if (chatWindow.classList.contains("open")) chatInput.focus();
+        });
+        chatClose.addEventListener("click", () => chatWindow.classList.remove("open"));
+
+        function appendMessage(sender, text) {
+            const msg = document.createElement("div");
+            msg.classList.add("chat-message", sender);
+            msg.innerHTML = `<span class="chat-bubble">${text}</span>`;
+            chatBox.appendChild(msg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const prompt = chatInput.value.trim();
+            if (!prompt) return;
+
+            appendMessage("user", prompt);
+            chatInput.value = "";
+            chatSend.disabled = true;
+
+            appendMessage("ai", "...");
+
+            try {
+                const res = await fetch(`${NGROK_URL}/generate`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-key": API_KEY
+                    },
+                    body: JSON.stringify({ prompt, personality: "benguin" })
+                });
+
+                const data = await res.json();
+                chatBox.lastChild.querySelector(".chat-bubble").textContent = data.response;
+            } catch (err) {
+                chatBox.lastChild.querySelector(".chat-bubble").textContent = "Something went wrong. Is the server running?";
+            }
+
+            chatSend.disabled = false;
+        }
+
+        chatSend.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keydown", e => {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
     <footer>
         <p>
             &copy; 2026 Ben Purcell. All rights reserved.
