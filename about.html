@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>The Home of Ben Purcell</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script>
+        // Example: basic script to simulate log in/out and update user info
+        document.addEventListener("DOMContentLoaded", function () {
+            const userActions = document.getElementById('user-actions');
+            let userName = null;
+
+            function renderUserActions() {
+                if (userName) {
+                    userActions.innerHTML = `
+                        <span>Welcome, <strong>${userName}</strong></span>
+                        <button id="logout-btn">Logout</button>
+                    `;
+                    document.getElementById('logout-btn').onclick = function () {
+                        userName = null;
+                        renderUserActions();
+                    }
+                } else {
+                    userActions.innerHTML = `
+                        <button id="login-btn">Login</button>
+                        <button id="signup-btn">Sign Up</button>
+                    `;
+                    document.getElementById('login-btn').onclick = function () {
+                        userName = "DemoUser";
+                        renderUserActions();
+                    }
+                    document.getElementById('signup-btn').onclick = function () {
+                        userName = "NewUser";
+                        renderUserActions();
+                    }
+                }
+            }
+
+            renderUserActions();
+        });
+    </script>
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <div class="logo-img">
+                <!-- Replace below with your logo SVG or IMG -->
+                <span style="font-size:24px;">🌟</span>
+            </div>
+            <span>Ben Purcell</span>
+        </div>
+        <nav class="tabs">
+            <ul>
+                <li><a href="./index.html">Home</a></li>
+                <li><a href="./pics.html">Pics</a></li>
+                <li><a href="./pricing.html">Pricing</a></li>
+                <li class="active"><a href="./about.html">About</a></li>
+                <li><a href="./quotes.html">Quotes</a></li>
+            </ul>
+        </nav>
+        <div class="user-actions" id="user-actions"></div>
+    </header>
+    <main>
+
+    </main>
+</body>
+<footer>
+    <p>
+        &copy; 2026 Ben Purcell. All rights reserved.
+        &nbsp;|&nbsp;
+        <a href="https://www.reddit.com/r/benpurcell/" target="_blank"
+            style="vertical-align:middle; text-decoration:none;">
+            <img src="https://www.redditstatic.com/desktop2x/img/favicon/apple-icon-57x57.png" alt="Reddit"
+                style="width:20px; height:20px; vertical-align:middle; border-radius:4px; margin-right:6px;">
+            <span style="vertical-align:middle;">Visit our Reddit</span>
+            &nbsp;|&nbsp;
+            <a href="https://benpurcellstourism.blogspot.com/?m=1" target="_blank"
+                style="vertical-align:middle; text-decoration:none;">
+                <img src="./assets/blogger_logo_40.png" alt="Blogger"
+                    style="width:20px; height:20px; vertical-align:middle; border-radius:4px; margin-right:6px;">
+                <span style="vertical-align:middle;">Visit our Blog</span>
+            </a>
+
+        </a>
+    </p>
+</footer>
+
+</html>
