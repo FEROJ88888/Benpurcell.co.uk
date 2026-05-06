@@ -26,6 +26,419 @@
         <div class="user-actions" id="user-actions"></div>
     </header>
     <main class="quotes-main">
+       <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BENGUIN: Holylands Rampage</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #game-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #title-screen {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 20px;
+  }
+
+  #title-screen h1 {
+    font-size: 28px;
+    color: #e63946;
+    text-shadow: 4px 4px 0 #7a0010, 0 0 30px #e63946;
+    animation: pulse 1.5s infinite;
+    letter-spacing: 4px;
+  }
+
+  #title-screen .subtitle {
+    font-size: 9px;
+    color: #aaa;
+    text-align: center;
+    line-height: 2;
+  }
+
+  #title-screen .start-btn {
+    margin-top: 20px;
+    background: #e63946;
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    animation: blink 1s infinite;
+    image-rendering: pixelated;
+  }
+
+  #title-screen .start-btn:hover { background: #ff6b6b; }
+
+  @keyframes pulse {
+    0%,100% { text-shadow: 4px 4px 0 #7a0010, 0 0 30px #e63946; }
+    50% { text-shadow: 4px 4px 0 #7a0010, 0 0 60px #ff6b6b; }
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #hud {
+    width: 600px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7px;
+    padding: 4px 8px;
+    background: #111;
+    border: 2px solid #333;
+  }
+
+  #hud .hp-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  #hud .hp-bar { width: 100px; height: 10px; background: #333; border: 1px solid #555; }
+  #hud .hp-fill { height: 100%; background: #e63946; transition: width 0.2s; }
+
+  canvas {
+    display: block;
+    border: 3px solid #333;
+    image-rendering: pixelated;
+    background: #1a0a00;
+  }
+
+  #controls {
+    font-size: 6px;
+    color: #666;
+    text-align: center;
+    line-height: 2.2;
+  }
+
+  #message-box {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    border: 2px solid #e63946;
+    padding: 8px 16px;
+    font-size: 7px;
+    color: #e63946;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+
+  #game-over-screen, #win-screen {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 20px;
+  }
+
+  #game-over-screen h2 { font-size: 24px; color: #e63946; }
+  #win-screen h2 { font-size: 18px; color: #ffd700; text-shadow: 0 0 20px #ffd700; }
+
+  .restart-btn {
+    background: #e63946;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    cursor: pointer;
+  }
+  .restart-btn:hover { background: #ff6b6b; }
+
+  .room-label {
+    font-size: 7px;
+    color: #888;
+  }
+</style>
+</head>
+<body>
+
+<div id="title-screen">
+  <h1>🐧 BENGUIN</h1>
+  <div class="subtitle">
+    HOLYLANDS RAMPAGE<br>
+    ── BELFAST'S FINEST ROGUELIKE ──<br><br>
+    Fight through a Holylands terrace house<br>
+    Survive the rat infestation<br>
+    Don't spill your Buckfast
+  </div>
+  <button class="start-btn" onclick="startGame()">▶ START GAME</button>
+  <div style="font-size:6px;color:#555;margin-top:10px;">WASD / Arrow Keys to move · SPACE to attack</div>
+</div>
+
+<div id="game-over-screen">
+  <h2>YE DIED</h2>
+  <div style="font-size:8px;color:#aaa;">The rats got ye, big lad.</div>
+  <button class="restart-btn" onclick="startGame()">TRY AGAIN</button>
+</div>
+
+<div id="win-screen">
+  <h2>🏆 HOLYLANDS HERO!</h2>
+  <div style="font-size:7px;color:#aaa;text-align:center;line-height:2;">
+    Ye bate every rat in the house!<br>
+    Pure class, so ye are.
+  </div>
+  <button class="restart-btn" onclick="startGame()">PLAY AGAIN</button>
+</div>
+
+<div id="game-wrapper">
+  <div id="hud">
+    <div class="hp-bar-wrap">
+      <span>HP</span>
+      <div class="hp-bar"><div class="hp-fill" id="hp-fill"></div></div>
+      <span id="hp-text">100</span>
+    </div>
+    <div id="room-label" class="room-label">FRONT DOOR</div>
+    <div>
+      <span>SCORE: </span><span id="score">0</span>
+    </div>
+  </div>
+  <canvas id="canvas" width="600" height="400"></canvas>
+  <div id="controls">
+    WASD / ARROWS · MOVE &nbsp;|&nbsp; SPACE · ATTACK &nbsp;|&nbsp; Defeat all rats to advance
+  </div>
+  <div id="message-box"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const W = 600, H = 400;
+const TILE = 32;
+
+const COLOURS = {
+  floor: ['#3a2510','#2e1c0b','#422c14'],
+  wall:  ['#c0622a','#a85020','#d4743a'],
+  wallTop: ['#e8845a','#d06838','#f09060'],
+  wallShade: ['#7a3010','#6a2808','#8a3818'],
+  wallMortar: '#8a5a3a',
+  door:  '#8B4513',
+  doorOpen: '#5C2D0A',
+  penguin: { body:'#eee', belly:'#fff', beak:'#e8a020', eye:'#111', glasses:'#222', hair:'#8B4513', feet:'#e8a020', headphones:'#444' },
+  rat: { body:'#888', belly:'#aaa', eye:'#ff2222', tail:'#666' },
+  attack: '#ffdd00',
+  blood: '#e63946',
+};
+
+const ROOMS = [
+  { name:"FRONT DOOR",    cols:18, rows:11, desc:"Reek of chips and last night's carry-out." },
+  { name:"HALLWAY",       cols:18, rows:11, desc:"Mouldy carpet. Someone's lost shoe." },
+  { name:"LIVING ROOM",   cols:18, rows:11, desc:"Broken IKEA furniture. Dead plants." },
+  { name:"KITCHEN",       cols:18, rows:11, desc:"Dishes from three weeks ago." },
+  { name:"BATHROOM",      cols:18, rows:11, desc:"Ye don't want to know." },
+  { name:"RYAN'S ROOM",   cols:18, rows:11, desc:"Posters everywhere. Empty Boost cans." },
+  { name:"SHAUN'S ROOM",  cols:18, rows:11, desc:"FIFA paused. Shaun's nowhere to be seen." },
+  { name:"BEN'S ROOM",    cols:18, rows:11, desc:"Ye've cleared the Holylands. LEGEND." },
+];
+
+let state;
+
+function makeRoom(idx) {
+  const room = ROOMS[idx];
+  const cols = room.cols, rows = room.rows;
+  const tiles = [];
+  for (let r = 0; r < rows; r++) {
+    tiles.push([]);
+    for (let c = 0; c < cols; c++) {
+      tiles[r].push((r===0||r===rows-1||c===0||c===cols-1) ? 1 : 0);
+    }
+  }
+  const decorWalls = [
+    [[2,3],[2,4],[2,5]],
+    [[rows-3,cols-4],[rows-3,cols-5]],
+    [[4,8],[5,8]],
+    [[7,14],[6,14]],
+  ];
+  decorWalls.forEach(group => group.forEach(([r,c])=>{ if(r>0&&r<rows-1&&c>0&&c<cols-1) tiles[r][c]=1; }));
+
+  const doorRow = Math.floor(rows/2);
+  const doorCol = cols-1;
+  tiles[doorRow][doorCol] = 0;
+
+  const numRats = 2 + idx * 2;
+  const rats = [];
+  for (let i = 0; i < numRats; i++) {
+    let rx, ry;
+    do {
+      rx = 2 + Math.floor(Math.random()*(cols-4));
+      ry = 2 + Math.floor(Math.random()*(rows-4));
+    } while (tiles[ry][rx] !== 0 || (rx < 4 && ry < 4));
+    rats.push({ x: rx*TILE+TILE/2, y: ry*TILE+TILE/2, hp: 30, maxHp:30,
+                vx:0, vy:0, dir:1, anim:0, attackCooldown:0, dead:false,
+                moveTimer:0, targetX: rx*TILE+TILE/2, targetY: ry*TILE+TILE/2 });
+  }
+
+  return { tiles, cols, rows, doorRow, doorCol, doorOpen: false, rats, idx };
+}
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-over-screen').style.display = 'none';
+  document.getElementById('win-screen').style.display = 'none';
+
+  const startRoom = makeRoom(0);
+  state = {
+    room: startRoom,
+    roomIdx: 0,
+    player: {
+      x: 2*TILE + TILE/2,
+      y: Math.floor(startRoom.rows/2)*TILE + TILE/2,
+      hp: 100, maxHp: 100,
+      vx: 0, vy: 0,
+      speed: 3,
+      dir: 1,
+      anim: 0,
+      attackTimer: 0,
+      attackCooldown: 0,
+      invincible: 0,
+    },
+    score: 0,
+    keys: {},
+    particles: [],
+    camX: 0, camY: 0,
+  };
+
+  updateHUD();
+  document.getElementById('room-label').textContent = ROOMS[0].name;
+  showMessage(ROOMS[0].desc, 2500);
+  loop();
+}
+
+document.addEventListener('keydown', e => {
+  if (state) state.keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { if (state) state.keys[e.code] = false; });
+
+function tileAt(room, px, py) {
+  const col = Math.floor(px / TILE);
+  const row = Math.floor(py / TILE);
+  if (row < 0 || row >= room.rows || col < 0 || col >= room.cols) return 1;
+  return room.tiles[row][col];
+}
+
+function collidesWall(room, x, y, r) {
+  const offsets = [[-r,-r],[ r,-r],[-r, r],[ r, r]];
+  for (const [dx,dy] of offsets) {
+    if (tileAt(room, x+dx, y+dy) === 1) return true;
+  }
+  return false;
+}
+
+function moveEntity(room, ent, dx, dy, radius) {
+  let nx = ent.x + dx, ny = ent.y + dy;
+  if (!collidesWall(room, nx, ent.y, radius)) ent.x = nx;
+  if (!collidesWall(room, ent.x, ny, radius)) ent.y = ny;
+}
+
+function spawnParticles(x, y, col, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random()*Math.PI*2;
+    const s = 1+Math.random()*3;
+    state.particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, col, life: 30+Math.random()*20, size: 3+Math.random()*3, text: null });
+  }
+}
+
+function spawnBonk(x, y) {
+  state.particles.push({ x, y, vx: (Math.random()-0.5)*2, vy: -2.5, col: '#ffdd00', life: 40, size: 0, text: 'BONK!' });
+}
+
+let msgTimeout;
+function showMessage(txt, dur=1800) {
+  const el = document.getElementById('message-box');
+  el.textContent = txt;
+  el.style.opacity = 1;
+  clearTimeout(msgTimeout);
+  msgTimeout = setTimeout(()=>{ el.style.opacity=0; }, dur);
+}
+
+function updateHUD() {
+  const p = state.player;
+  document.getElementById('hp-fill').style.width = (p.hp/p.maxHp*100)+'%';
+  document.getElementById('hp-text').textContent = p.hp;
+  document.getElementById('score').textContent = state.score;
+}
+
+function updateCamera() {
+  const targetX = state.player.x - W/2;
+  const targetY = state.player.y - H/2;
+  const maxX = state.room.cols*TILE - W;
+  const maxY = state.room.rows*TILE - H;
+  state.camX += (Math.max(0,Math.min(maxX,targetX)) - state.camX) * 0.15;
+  state.camY += (Math.max(0,Math.min(maxY,targetY)) - state.camY) * 0.15;
+}
+
+function drawBenguin(x, y, dir, anim, attacking, invincible) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (dir < 0) ctx.scale(-1, 1);
+
+  const blink = invincible > 0 && Math.floor(Date.now()/80)%2===0;
+  if (blink) { ctx.restore(); return; }
+
+  const bob = Math.sin(anim * 0.3) * 2;
+
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(-12, -8+bob, 24, 26);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-7, -4+bob, 14, 18);
+  ctx.fillStyle = '#e63946';
+  ctx.font = 'bold 5px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('NO', 0, 2+bob);
+  ctx.fillText('IDEA', 0, 8+bob);
+  ctx.fillStyle = '#555';
+  ctx.fillRect(-16, -4+bob, 5, 14);
+  ctx.fillRect(11, -4+bob, 5, 14);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-11, -24+bob, 22, 18);
+  ctx.fillStyle = '#8B4513';
+  for (let i = -10; i <= 10; i+=4) {
+    const h = 3+Math.abs(i)%3;
+    ctx.fillRect(i, -24-h+bob, 3, h+2);
+  }
+  ctx.fillStyle = '#222';
+  ctx.fillRect(-11, -18+bob, 9, 7);
+  ctx.fillRect(2, -18+bob, 9, 7);
+  ctx.fillRect(-2, -17+bob, 4, 2);
+  ctx.fill
+        <div class="gallery">
+         <img src="img1.jpg" alt="">
+         <img src="img2.jpg" alt="">
+         <img src="img3.jpg" alt="">
+        </div>
         <h1 class="quotes-heading">Words of Wisdom</h1>
         <div class="quotes-list">
             <blockquote class="quote-card">
