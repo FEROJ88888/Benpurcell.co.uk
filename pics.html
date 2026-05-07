@@ -27,7 +27,6 @@
     </header>
     <main class="quotes-main">
       <!DOCTYPE html>
-      <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -48,6 +47,7 @@
   #hud .hp-bar-wrap { display:flex; align-items:center; gap:6px; }
   #hud .hp-bar { width:100px; height:10px; background:#333; border:1px solid #555; }
   #hud .hp-fill { height:100%; background:#e63946; transition:width 0.2s; }
+  #weapon-indicator { font-size:6px; color:#ff8800; }
   #boss-hud { width:600px; background:#1a0000; border:2px solid #9a0020; border-top:none; padding:5px 10px; display:none; }
   #boss-hud .boss-title { font-size:7px; color:#ffd700; text-align:center; letter-spacing:3px; text-shadow:0 0 10px #ffd700; margin-bottom:4px; }
   #boss-bar-wrap { background:#330000; height:16px; border:1px solid #660000; position:relative; }
@@ -62,7 +62,7 @@
   .restart-btn { background:#e63946; color:#fff; border:none; padding:12px 24px; font-family:'Press Start 2P',monospace; font-size:10px; cursor:pointer; }
   .restart-btn:hover { background:#ff6b6b; }
   .room-label { font-size:7px; color:#888; }
-  #boss-intro { position:fixed; inset:0; background:rgba(0,0,0,0.0); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; pointer-events:none; }
+  #boss-intro { position:fixed; inset:0; background:rgba(0,0,0,0); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; pointer-events:none; }
   #boss-intro h2 { font-size:22px; color:#ffd700; text-shadow:0 0 30px #ffd700,0 0 60px #e63946; opacity:0; transition:opacity 0.5s; letter-spacing:4px; }
   #boss-intro p { font-size:8px; color:#e63946; opacity:0; transition:opacity 0.5s 0.3s; margin-top:10px; text-align:center; line-height:2; }
 </style>
@@ -71,14 +71,14 @@
 
 <div id="title-screen">
   <h1>&#x1F427; BENGUIN</h1>
-  <div class="subtitle">HOLYLANDS RAMPAGE<br>&#x2500;&#x2500; BELFAST'S FINEST ROGUELIKE &#x2500;&#x2500;<br><br>Fight through a Holylands terrace house<br>Survive the rat infestation<br>Defeat the Rat King!</div>
-  <button class="start-btn" onclick="startGame()">&#x25B6; START GAME</button>
-  <div style="font-size:6px;color:#555;margin-top:10px;">WASD / Arrow Keys to move &middot; SPACE to attack</div>
+  <div class="subtitle">HOLYLANDS RAMPAGE<br>── BELFAST'S FINEST ROGUELIKE ──<br><br>Fight through a Holylands terrace house<br>Survive the rat infestation<br>Defeat Patches! Find the secret room!</div>
+  <button class="start-btn" onclick="startGame()">▶ START GAME</button>
+  <div style="font-size:6px;color:#555;margin-top:10px;">WASD/Arrows · move &nbsp;|&nbsp; SPACE · attack &nbsp;|&nbsp; Walk into cracked wall to break it</div>
 </div>
 
 <div id="boss-intro">
-  <h2 id="boss-intro-title">&#x1F439; PATCHES &#x1F451;</h2>
-  <p id="boss-intro-sub">BEN'S DERANGED HAMSTER<br>HAS BEEN WAITING FOR YE...</p>
+  <h2 id="boss-intro-title">⚠ NEBGUIN ⚠</h2>
+  <p id="boss-intro-sub">EVIL BENGUIN FROM THE MIRROR DIMENSION<br>HE HAS A FLAMETHROWER</p>
 </div>
 
 <div id="game-over-screen">
@@ -88,7 +88,7 @@
 </div>
 
 <div id="win-screen">
-  <h2>&#x1F3C6; HOLYLANDS HERO!</h2>
+  <h2>🏆 HOLYLANDS HERO!</h2>
   <div style="font-size:7px;color:#aaa;text-align:center;line-height:2;">Ye bate Patches the Hamster!<br>Pure class, so ye are.</div>
   <div id="final-score" style="font-size:9px;color:#ffd700;margin-top:6px;"></div>
   <button class="restart-btn" onclick="startGame()">PLAY AGAIN</button>
@@ -102,14 +102,17 @@
       <span id="hp-text">100</span>
     </div>
     <div id="room-label" class="room-label">FRONT DOOR</div>
-    <div><span>SCORE: </span><span id="score">0</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <div><span>SCORE: </span><span id="score">0</span></div>
+      <div id="weapon-indicator">🔨 MALLET</div>
+    </div>
   </div>
   <div id="boss-hud">
-    <div class="boss-title">&#x1F439; PATCHES THE HAMSTER &#x1F451;</div>
-    <div id="boss-bar-wrap"><div id="boss-hp-fill"></div><div id="boss-phase-txt">PHASE 1 &#x2014; SCURRYING</div></div>
+    <div class="boss-title" id="boss-hud-title">🐹 PATCHES THE HAMSTER 👑</div>
+    <div id="boss-bar-wrap"><div id="boss-hp-fill"></div><div id="boss-phase-txt">PHASE 1</div></div>
   </div>
   <canvas id="canvas" width="600" height="400"></canvas>
-  <div id="controls">WASD / ARROWS &middot; MOVE &nbsp;|&nbsp; SPACE &middot; ATTACK &nbsp;|&nbsp; Kill all enemies to advance</div>
+  <div id="controls">WASD/ARROWS · MOVE &nbsp;|&nbsp; SPACE · ATTACK &nbsp;|&nbsp; Walk into cracked wall in Ryan's Room!</div>
   <div id="message-box"></div>
 </div>
 
@@ -128,99 +131,136 @@ const COLOURS = {
   blood:'#e63946',
 };
 
+const RYANS_ROOM_IDX = 5;
+const SECRET_WALL_COL = 9;
+const SECRET_WALL_ROW = 10;
+
 const ROOMS = [
   { name:"FRONT DOOR",   cols:18, rows:11, desc:"Reek of chips and last night's carry-out.", boss:false },
   { name:"HALLWAY",      cols:18, rows:11, desc:"Mouldy carpet. Someone's lost shoe.", boss:false },
   { name:"LIVING ROOM",  cols:18, rows:11, desc:"Broken IKEA furniture. Dead plants.", boss:false },
   { name:"KITCHEN",      cols:18, rows:11, desc:"Dishes from three weeks ago.", boss:false },
   { name:"BATHROOM",     cols:18, rows:11, desc:"Ye don't want to know.", boss:false },
-  { name:"RYAN'S ROOM",  cols:18, rows:11, desc:"Posters everywhere. Empty Boost cans.", boss:false },
+  { name:"RYAN'S ROOM",  cols:18, rows:11, desc:"Posters everywhere. Empty Boost cans. There's a weird crack in the wall...", boss:false, secretWall:true },
   { name:"SHAUN'S ROOM", cols:18, rows:11, desc:"FIFA paused. Shaun's nowhere to be seen.", boss:false },
   { name:"BEN'S ROOM",   cols:18, rows:11, desc:"A foul stench... something stirs in the corner.", boss:true },
 ];
 
+const SECRET_ROOM = { name:"NEBGUIN'S LAIR", cols:14, rows:9, desc:"...it's like lookin in a mirror. An evil mirror.", boss:false, isSecret:true };
+
 const BOSS_MAX_HP = 300;
 const BOSS_PHASES = [
-  { threshold:1.0,  label:"PHASE 1 \u2014 CHEEK STUFFED",  speed:1.4, spawnRate:300 },
-  { threshold:0.66, label:"PHASE 2 \u2014 WHEEL SPINNING",  speed:2.0, spawnRate:180 },
-  { threshold:0.33, label:"PHASE 3 \u2014 FULL BERSERK",    speed:2.8, spawnRate:100 },
+  { label:"PHASE 1 — CHEEK STUFFED", speed:1.4, spawnRate:300 },
+  { label:"PHASE 2 — WHEEL SPINNING", speed:2.0, spawnRate:180 },
+  { label:"PHASE 3 — FULL BERSERK",   speed:2.8, spawnRate:100 },
 ];
+const NEBGUIN_MAX_HP = 180;
 
 let state, lastTime=0, animFrame;
 
-function makeRat(x, y) {
-  return { x, y, hp:30, maxHp:30, vx:0, vy:0, dir:1, anim:0, attackCooldown:0, dead:false, moveTimer:0 };
+function makeFlameParticle(x,y,angle,speed){
+  return { x,y, vx:Math.cos(angle)*speed*(0.7+Math.random()*0.6), vy:Math.sin(angle)*speed*(0.7+Math.random()*0.6),
+    life:18+Math.random()*14, maxLife:32, size:6+Math.random()*8 };
 }
 
-function makeRoom(idx) {
-  const room = ROOMS[idx];
-  const cols=room.cols, rows=room.rows;
+function makeRat(x,y){ return { x,y,hp:30,maxHp:30,vx:0,vy:0,dir:1,anim:0,attackCooldown:0,dead:false,moveTimer:0 }; }
+
+function makeRoom(idx){ return buildRoom(ROOMS[idx], idx, false); }
+function makeSecretRoom(){ return buildRoom(SECRET_ROOM, -1, true); }
+
+function buildRoom(def, idx, isSecret){
+  const cols=def.cols, rows=def.rows;
   const tiles=[];
   for(let r=0;r<rows;r++){
     tiles.push([]);
     for(let c=0;c<cols;c++) tiles[r].push((r===0||r===rows-1||c===0||c===cols-1)?1:0);
   }
-  const dw=[[[2,3],[2,4],[2,5]],[[rows-3,cols-4],[rows-3,cols-5]],[[4,8],[5,8]],[[7,14],[6,14]]];
-  dw.forEach(g=>g.forEach(([r,c])=>{ if(r>0&&r<rows-1&&c>0&&c<cols-1) tiles[r][c]=1; }));
+  if(!isSecret){
+    const dw=[[[2,3],[2,4],[2,5]],[[rows-3,cols-4],[rows-3,cols-5]],[[4,8],[5,8]],[[7,14],[6,14]]];
+    dw.forEach(g=>g.forEach(([r,c])=>{ if(r>0&&r<rows-1&&c>0&&c<cols-1)tiles[r][c]=1; }));
+  }
   const doorRow=Math.floor(rows/2), doorCol=cols-1;
   tiles[doorRow][doorCol]=0;
 
-  const numRats = room.boss ? 0 : 2+idx*2;
+  const numRats=(def.boss||isSecret)?0:2+idx*2;
   const rats=[];
   for(let i=0;i<numRats;i++){
     let rx,ry;
     do{ rx=2+Math.floor(Math.random()*(cols-4)); ry=2+Math.floor(Math.random()*(rows-4)); }
-    while(tiles[ry][rx]!==0 || rx < 7);
+    while(tiles[ry][rx]!==0||rx<7);
     rats.push(makeRat(rx*TILE+TILE/2, ry*TILE+TILE/2));
   }
 
-  let boss = null;
-  if(room.boss){
-    boss = {
-      x: Math.floor(cols/2)*TILE+TILE/2,
-      y: Math.floor(rows/2)*TILE+TILE/2,
-      hp: BOSS_MAX_HP, maxHp: BOSS_MAX_HP,
-      dir:1, anim:0, phase:0,
-      attackCooldown:0,
-      chargeCooldown:120,
-      chargeVx:0, chargeVy:0,
-      charging:false, chargeTimer:0,
-      spawnTimer:200,
-      dead:false, shakeTimer:0,
+  let secretWallPos=null;
+  if(def.secretWall){
+    tiles[SECRET_WALL_ROW][SECRET_WALL_COL]=2;
+    secretWallPos={ row:SECRET_WALL_ROW, col:SECRET_WALL_COL, hp:3, broken:false };
+  }
+
+  let secretExit=null;
+  if(isSecret){
+    const exitCol=Math.floor(cols/2);
+    tiles[0][exitCol]=3;
+    secretExit={ row:0, col:exitCol };
+  }
+
+  let nebguin=null;
+  if(isSecret){
+    nebguin={
+      x:Math.floor(cols/2)*TILE+TILE/2,
+      y:Math.floor(rows/2)*TILE+TILE/2+TILE,
+      hp:NEBGUIN_MAX_HP, maxHp:NEBGUIN_MAX_HP,
+      dir:-1, anim:0, attackCooldown:0,
+      flameCooldown:0, flameTimer:0, flaming:false,
+      dead:false, shakeTimer:0, flames:[],
     };
   }
 
-  return { tiles, cols, rows, doorRow, doorCol, doorOpen:false, rats, boss, idx, healthDrops:[] };
+  let boss=null;
+  if(def.boss){
+    boss={
+      x:Math.floor(cols/2)*TILE+TILE/2,
+      y:Math.floor(rows/2)*TILE+TILE/2,
+      hp:BOSS_MAX_HP, maxHp:BOSS_MAX_HP,
+      dir:1, anim:0, phase:0,
+      attackCooldown:0, chargeCooldown:120,
+      chargeVx:0, chargeVy:0,
+      charging:false, chargeTimer:0,
+      spawnTimer:200, dead:false, shakeTimer:0,
+    };
+  }
+
+  return { tiles, cols, rows, doorRow, doorCol, doorOpen:false, rats, boss, idx,
+    healthDrops:[], secretWallPos, secretExit, nebguin, isSecret, def };
 }
 
-function startGame() {
+function startGame(){
   document.getElementById('title-screen').style.display='none';
   document.getElementById('game-over-screen').style.display='none';
   document.getElementById('win-screen').style.display='none';
   document.getElementById('boss-hud').style.display='none';
   cancelAnimationFrame(animFrame);
   const startRoom=makeRoom(0);
-  state = {
+  state={
     room:startRoom, roomIdx:0,
+    prevRoom:null, prevPlayerX:0, prevPlayerY:0,
     player:{ x:2*TILE+TILE/2, y:Math.floor(startRoom.rows/2)*TILE+TILE/2,
-      hp:100, maxHp:100, speed:3, dir:1, anim:0,
-      attackTimer:0, attackCooldown:0, invincible:0 },
+      hp:100,maxHp:100,speed:3,dir:1,anim:0,
+      attackTimer:0,attackCooldown:0,invincible:0,
+      weapon:'mallet', flameAmmo:0,
+    },
     score:0, keys:{}, particles:[], camX:0, camY:0,
   };
-  updateHUD();
+  updateHUD(); updateWeaponIndicator();
   document.getElementById('room-label').textContent=ROOMS[0].name;
-  showMessage(ROOMS[0].desc, 2500);
-  lastTime=0;
-  loop();
+  showMessage(ROOMS[0].desc,2500);
+  lastTime=0; loop();
 }
 
-document.addEventListener('keydown', e=>{
-  if(state) state.keys[e.code]=true;
-  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
-});
-document.addEventListener('keyup', e=>{ if(state) state.keys[e.code]=false; });
+document.addEventListener('keydown',e=>{ if(state)state.keys[e.code]=true; if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault(); });
+document.addEventListener('keyup',e=>{ if(state)state.keys[e.code]=false; });
 
-function tileAt(room,px,py){ const col=Math.floor(px/TILE),row=Math.floor(py/TILE); if(row<0||row>=room.rows||col<0||col>=room.cols)return 1; return room.tiles[row][col]; }
+function tileAt(room,px,py){ const col=Math.floor(px/TILE),row=Math.floor(py/TILE); if(row<0||row>=room.rows||col<0||col>=room.cols)return 1; const t=room.tiles[row][col]; return (t===2)?1:(t===3)?0:t; }
 function collidesWall(room,x,y,r){ for(const[dx,dy]of[[-r,-r],[r,-r],[-r,r],[r,r]]){ if(tileAt(room,x+dx,y+dy)===1)return true; } return false; }
 function moveEntity(room,ent,dx,dy,radius){ const nx=ent.x+dx,ny=ent.y+dy; if(!collidesWall(room,nx,ent.y,radius))ent.x=nx; if(!collidesWall(room,ent.x,ny,radius))ent.y=ny; }
 
@@ -231,38 +271,37 @@ let msgTimeout;
 function showMessage(txt,dur=1800){ const el=document.getElementById('message-box'); el.textContent=txt; el.style.opacity=1; clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>el.style.opacity=0,dur); }
 
 function updateHUD(){ const p=state.player; document.getElementById('hp-fill').style.width=(p.hp/p.maxHp*100)+'%'; document.getElementById('hp-text').textContent=p.hp; document.getElementById('score').textContent=state.score; }
+function updateWeaponIndicator(){ const p=state.player; const el=document.getElementById('weapon-indicator'); if(p.weapon==='flamethrower')el.textContent='🔥 FLAMETHROWER ('+p.flameAmmo+')'; else el.textContent='🔨 MALLET'; }
 
 function getBossPhase(boss){ const r=boss.hp/boss.maxHp; if(r<=0.33)return 2; if(r<=0.66)return 1; return 0; }
 
-function updateBossHUD(boss){
+function updateBossHUD(boss,title){
   if(!boss){ document.getElementById('boss-hud').style.display='none'; return; }
   document.getElementById('boss-hud').style.display='block';
+  if(title) document.getElementById('boss-hud-title').textContent=title;
   document.getElementById('boss-hp-fill').style.width=(boss.hp/boss.maxHp*100)+'%';
   const ph=getBossPhase(boss);
-  document.getElementById('boss-phase-txt').textContent=BOSS_PHASES[ph].label;
+  document.getElementById('boss-phase-txt').textContent=boss.maxHp===BOSS_MAX_HP?BOSS_PHASES[ph].label:'NEBGUIN HP';
   const cols=['linear-gradient(90deg,#7a0010,#e63946)','linear-gradient(90deg,#7a0010,#cc2222)','linear-gradient(90deg,#550000,#ff2222)'];
-  document.getElementById('boss-hp-fill').style.background=cols[ph];
+  document.getElementById('boss-hp-fill').style.background=boss.maxHp===BOSS_MAX_HP?cols[ph]:'linear-gradient(90deg,#002244,#0066ff)';
 }
 
 function updateCamera(){ const tx=state.player.x-W/2,ty=state.player.y-H/2,maxX=state.room.cols*TILE-W,maxY=state.room.rows*TILE-H; state.camX+=(Math.max(0,Math.min(maxX,tx))-state.camX)*0.15; state.camY+=(Math.max(0,Math.min(maxY,ty))-state.camY)*0.15; }
 
-function triggerBossIntro(cb){
+function triggerIntro(titleTxt,subTxt,cb){
   const el=document.getElementById('boss-intro');
   const title=document.getElementById('boss-intro-title');
   const sub=document.getElementById('boss-intro-sub');
   el.style.display='flex'; el.style.background='rgba(0,0,0,0.85)';
+  title.textContent=titleTxt; sub.textContent=subTxt;
   title.style.opacity='0'; sub.style.opacity='0';
   setTimeout(()=>{ title.style.opacity='1'; sub.style.opacity='1'; },100);
   setTimeout(()=>{ title.style.opacity='0'; sub.style.opacity='0'; },2400);
   setTimeout(()=>{ el.style.display='none'; cb(); },3000);
 }
 
-function loop(ts=0){
-  const dt=Math.min((ts-lastTime)/16.67,3);
-  lastTime=ts;
-  update(dt); draw();
-  animFrame=requestAnimationFrame(loop);
-}
+function loop(ts=0){ const dt=Math.min((ts-lastTime)/16.67,3); lastTime=ts; update(dt); draw(); animFrame=requestAnimationFrame(loop); }
+function playerDie(){ cancelAnimationFrame(animFrame); setTimeout(()=>document.getElementById('game-over-screen').style.display='flex',400); }
 
 function update(dt){
   const{player,room,keys}=state;
@@ -275,43 +314,133 @@ function update(dt){
   if(dx||dy){ const l=Math.sqrt(dx*dx+dy*dy); dx=dx/l*player.speed; dy=dy/l*player.speed; if(dx)player.dir=dx>0?1:-1; player.anim+=dt; }
   moveEntity(room,player,dx*dt,dy*dt,10);
 
+  // Secret wall breaking
+  if(room.secretWallPos&&!room.secretWallPos.broken){
+    const sw=room.secretWallPos;
+    const wallX=sw.col*TILE+TILE/2, wallY=sw.row*TILE+TILE/2;
+    if(Math.hypot(player.x-wallX,player.y-wallY)<28){
+      sw.hp--;
+      spawnParticles(wallX,wallY,'#c0622a',5);
+      if(sw.hp<=0){
+        sw.broken=true;
+        room.tiles[sw.row][sw.col]=0;
+        spawnParticles(wallX,wallY,'#c0622a',25);
+        showMessage('SECRET PASSAGE! 👀',2500);
+      }
+    }
+  }
+
+  // Secret exit (top of secret room)
+  if(room.isSecret&&room.secretExit){
+    const ex=room.secretExit;
+    const exitX=ex.col*TILE+TILE/2;
+    if(Math.abs(player.x-exitX)<TILE&&player.y<TILE*1.5){
+      state.room=state.prevRoom;
+      state.roomIdx=RYANS_ROOM_IDX;
+      player.x=state.prevPlayerX; player.y=state.prevPlayerY;
+      state.camX=0; state.camY=0;
+      document.getElementById('room-label').textContent="RYAN'S ROOM";
+      updateBossHUD(null);
+      showMessage("Back in Ryan's room...",1800);
+      return;
+    }
+  }
+
+  // Enter secret passage
+  if(room.secretWallPos&&room.secretWallPos.broken&&!room.isSecret){
+    const sw=room.secretWallPos;
+    const wallX=sw.col*TILE+TILE/2, wallY=sw.row*TILE;
+    if(Math.hypot(player.x-wallX,player.y-wallY)<20){
+      state.prevRoom=room;
+      state.prevPlayerX=player.x;
+      state.prevPlayerY=player.y;
+      const secretRoom=makeSecretRoom();
+      state.room=secretRoom;
+      player.x=Math.floor(secretRoom.cols/2)*TILE+TILE/2;
+      player.y=(secretRoom.rows-2)*TILE;
+      state.camX=0; state.camY=0;
+      document.getElementById('room-label').textContent="NEBGUIN'S LAIR";
+      if(secretRoom.nebguin&&!secretRoom.nebguin.dead){
+        triggerIntro("⚠ NEBGUIN ⚠","EVIL BENGUIN FROM THE MIRROR DIMENSION\nHE HAS A FLAMETHROWER",()=>{
+          updateBossHUD(state.room.nebguin,"⚠ NEBGUIN THE EVIL ⚠");
+        });
+      }
+      showMessage(SECRET_ROOM.desc,3000);
+      return;
+    }
+  }
+
   if(player.attackCooldown>0) player.attackCooldown-=dt;
   if(player.attackTimer>0)    player.attackTimer-=dt;
 
   if((keys['Space']||keys['KeyZ'])&&player.attackCooldown<=0){
-    player.attackTimer=8; player.attackCooldown=20;
-    room.rats.forEach(rat=>{
-      if(rat.dead)return;
-      if(Math.hypot(rat.x-player.x,rat.y-player.y)<55){
-        rat.hp-=20; spawnParticles(rat.x,rat.y,COLOURS.blood,8); spawnBonk(rat.x,rat.y-16);
-        if(rat.hp<=0){
-          rat.dead=true; state.score+=100; updateHUD();
-          spawnParticles(rat.x,rat.y,COLOURS.blood,20);
-          if(Math.random()<0.1){ room.healthDrops.push({x:rat.x,y:rat.y,bob:0,anim:0}); }
+    if(player.weapon==='flamethrower'&&player.flameAmmo>0){
+      player.attackCooldown=4;
+      player.flameAmmo--;
+      updateWeaponIndicator();
+      const fireAngle=player.dir>0?0:Math.PI;
+      for(let i=0;i<4;i++){
+        const a=fireAngle+(Math.random()-0.5)*0.5;
+        state.particles.push({ x:player.x+player.dir*14, y:player.y-4,
+          vx:Math.cos(a)*6*(0.8+Math.random()*0.5), vy:Math.sin(a)*6*(0.8+Math.random()*0.5),
+          col:['#ff8800','#ff4400','#ffcc00','#ff2200'][Math.floor(Math.random()*4)],
+          life:14+Math.random()*10, size:8+Math.random()*6, text:null, isFire:true });
+      }
+      if(player.flameAmmo<=0){ player.weapon='mallet'; updateWeaponIndicator(); showMessage('OUT OF FUEL! Back to mallet.',2000); }
+    } else {
+      player.attackTimer=8; player.attackCooldown=20;
+    }
+
+    if(player.weapon==='mallet'){
+      room.rats.forEach(rat=>{
+        if(rat.dead)return;
+        if(Math.hypot(rat.x-player.x,rat.y-player.y)<55){
+          rat.hp-=20; spawnParticles(rat.x,rat.y,COLOURS.blood,8); spawnBonk(rat.x,rat.y-16);
+          if(rat.hp<=0) killRat(rat,room);
+        }
+      });
+      if(room.boss&&!room.boss.dead){
+        const boss=room.boss;
+        if(Math.hypot(boss.x-player.x,boss.y-player.y)<72){
+          boss.hp=Math.max(0,boss.hp-20); boss.shakeTimer=14;
+          spawnParticles(boss.x,boss.y,COLOURS.blood,14); spawnBonk(boss.x,boss.y-40,'BONK! 20');
+          updateBossHUD(boss,"🐹 PATCHES THE HAMSTER 👑");
+          if(boss.hp<=0){ boss.dead=true; state.score+=1000; updateHUD(); spawnParticles(boss.x,boss.y,'#ffd700',50); spawnBonk(boss.x,boss.y-50,'DEFEATED!!!'); showMessage('PATCHES IS DONE! +1000 SCORE!',3500); }
         }
       }
-    });
-    if(room.boss&&!room.boss.dead){
-      const boss=room.boss;
-      if(Math.hypot(boss.x-player.x,boss.y-player.y)<72){
-        boss.hp=Math.max(0,boss.hp-20);
-        boss.shakeTimer=14;
-        spawnParticles(boss.x,boss.y,COLOURS.blood,14);
-        spawnBonk(boss.x,boss.y-40,'BONK! 20');
-        updateBossHUD(boss);
-        if(boss.hp<=0){
-          boss.dead=true; state.score+=1000; updateHUD();
-          spawnParticles(boss.x,boss.y,'#ffd700',50);
-          spawnParticles(boss.x,boss.y,COLOURS.blood,50);
-          spawnBonk(boss.x,boss.y-50,'DEFEATED!!!');
-          showMessage('PATCHES IS DONE! +1000 SCORE!',3500);
+      if(room.nebguin&&!room.nebguin.dead){
+        const nb=room.nebguin;
+        if(Math.hypot(nb.x-player.x,nb.y-player.y)<65){
+          nb.hp=Math.max(0,nb.hp-20); nb.shakeTimer=12;
+          spawnParticles(nb.x,nb.y,COLOURS.blood,12); spawnBonk(nb.x,nb.y-36,'BONK! 20');
+          updateBossHUD(nb,"⚠ NEBGUIN THE EVIL ⚠");
+          if(nb.hp<=0) killNebguin(nb,room);
         }
       }
     }
   }
 
+  // Fire particles hit enemies
+  state.particles.forEach(p=>{
+    if(!p.isFire) return;
+    room.rats.forEach(rat=>{ if(rat.dead)return; if(Math.hypot(rat.x-p.x,rat.y-p.y)<18){ rat.hp-=2; p.life=0; if(rat.hp<=0)killRat(rat,room); } });
+    if(room.boss&&!room.boss.dead&&Math.hypot(room.boss.x-p.x,room.boss.y-p.y)<36){ room.boss.hp=Math.max(0,room.boss.hp-1); p.life=0; updateBossHUD(room.boss,"🐹 PATCHES THE HAMSTER 👑"); if(room.boss.hp<=0){ room.boss.dead=true; state.score+=1000; updateHUD(); spawnParticles(room.boss.x,room.boss.y,'#ffd700',50); showMessage('PATCHES IS DONE! +1000 SCORE!',3500); } }
+    if(room.nebguin&&!room.nebguin.dead&&Math.hypot(room.nebguin.x-p.x,room.nebguin.y-p.y)<28){ room.nebguin.hp=Math.max(0,room.nebguin.hp-1); p.life=0; updateBossHUD(room.nebguin,"⚠ NEBGUIN THE EVIL ⚠"); if(room.nebguin.hp<=0)killNebguin(room.nebguin,room); }
+  });
+
   if(player.invincible>0) player.invincible-=dt;
 
+  // Nebguin flames hit player
+  if(room.nebguin&&!room.nebguin.dead){
+    room.nebguin.flames.forEach(f=>{
+      if(Math.hypot(f.x-player.x,f.y-player.y)<16&&player.invincible<=0){
+        player.hp=Math.max(0,player.hp-2); player.invincible=8;
+        updateHUD(); if(player.hp<=0)playerDie();
+      }
+    });
+  }
+
+  // Rat AI
   room.rats.forEach(rat=>{
     if(rat.dead)return;
     rat.anim+=dt; rat.moveTimer-=dt;
@@ -319,104 +448,114 @@ function update(dt){
     if(dist<140){
       const a=Math.atan2(player.y-rat.y,player.x-rat.x);
       const rdx=Math.cos(a)*1.2*dt, rdy=Math.sin(a)*1.2*dt;
-      rat.dir=rdx>0?1:-1;
-      moveEntity(room,rat,rdx,rdy,8);
+      rat.dir=rdx>0?1:-1; moveEntity(room,rat,rdx,rdy,8);
       if(rat.attackCooldown>0) rat.attackCooldown-=dt;
       if(dist<22&&rat.attackCooldown<=0&&player.invincible<=0){
         player.hp=Math.max(0,player.hp-10); player.invincible=40; rat.attackCooldown=60;
-        spawnParticles(player.x,player.y,'#ff8800',6); updateHUD();
-        if(player.hp<=0){ cancelAnimationFrame(animFrame); setTimeout(()=>document.getElementById('game-over-screen').style.display='flex',400); }
+        spawnParticles(player.x,player.y,'#ff8800',6); updateHUD(); if(player.hp<=0)playerDie();
       }
     } else {
       if(rat.moveTimer<=0){ rat.moveTimer=40+Math.random()*60; const a=Math.random()*Math.PI*2; rat.vx=Math.cos(a)*0.8; rat.vy=Math.sin(a)*0.8; }
-      rat.dir=rat.vx>0?1:-1;
-      moveEntity(room,rat,rat.vx*dt,rat.vy*dt,8);
+      rat.dir=rat.vx>0?1:-1; moveEntity(room,rat,rat.vx*dt,rat.vy*dt,8);
     }
   });
 
+  // Patches boss AI
   if(room.boss&&!room.boss.dead){
-    const boss=room.boss;
-    boss.anim+=dt;
-    if(boss.shakeTimer>0) boss.shakeTimer-=dt;
-
+    const boss=room.boss; boss.anim+=dt; if(boss.shakeTimer>0)boss.shakeTimer-=dt;
     const newPhase=getBossPhase(boss);
     if(newPhase!==boss.phase){
-      boss.phase=newPhase;
-      spawnParticles(boss.x,boss.y,'#ffd700',30);
+      boss.phase=newPhase; spawnParticles(boss.x,boss.y,'#ffd700',30);
       const msgs=['','PATCHES IS RAGIN\'! PHASE 2!','PATCHES GOES FULL MAD! PHASE 3!!!'];
-      showMessage(msgs[newPhase],2800);
-      spawnBonk(boss.x,boss.y-55,newPhase===1?'RAGIN\'!':'PURE MAD!!!');
+      showMessage(msgs[newPhase],2800); spawnBonk(boss.x,boss.y-55,newPhase===1?'RAGIN\'!':'PURE MAD!!!');
     }
-
     const phData=BOSS_PHASES[boss.phase];
-
     boss.spawnTimer-=dt;
     if(boss.spawnTimer<=0){
       boss.spawnTimer=phData.spawnRate;
-      const num=boss.phase+1;
-      for(let i=0;i<num;i++){
-        const a=Math.random()*Math.PI*2, d=45+Math.random()*25;
-        const rx=boss.x+Math.cos(a)*d, ry=boss.y+Math.sin(a)*d;
+      for(let i=0;i<boss.phase+1;i++){
+        const a=Math.random()*Math.PI*2,d=45+Math.random()*25;
+        const rx=boss.x+Math.cos(a)*d,ry=boss.y+Math.sin(a)*d;
         if(!collidesWall(room,rx,ry,8)) room.rats.push(makeRat(rx,ry));
       }
-      spawnParticles(boss.x,boss.y,'#880000',12);
     }
-
     boss.chargeCooldown-=dt;
     if(!boss.charging&&boss.chargeCooldown<=0){
       boss.charging=true; boss.chargeTimer=28;
       const a=Math.atan2(player.y-boss.y,player.x-boss.x);
-      const spd=phData.speed*5;
-      boss.chargeVx=Math.cos(a)*spd; boss.chargeVy=Math.sin(a)*spd;
-      boss.chargeCooldown=100+Math.random()*80;
-      spawnBonk(boss.x,boss.y-55,'CHARGE!!!');
+      boss.chargeVx=Math.cos(a)*phData.speed*5; boss.chargeVy=Math.sin(a)*phData.speed*5;
+      boss.chargeCooldown=100+Math.random()*80; spawnBonk(boss.x,boss.y-55,'CHARGE!!!');
     }
-
     if(boss.charging){
-      boss.chargeTimer-=dt;
-      boss.dir=boss.chargeVx>0?1:-1;
+      boss.chargeTimer-=dt; boss.dir=boss.chargeVx>0?1:-1;
       moveEntity(room,boss,boss.chargeVx*dt,boss.chargeVy*dt,18);
       boss.chargeVx*=0.93; boss.chargeVy*=0.93;
       if(boss.chargeTimer<=0) boss.charging=false;
       if(Math.hypot(boss.x-player.x,boss.y-player.y)<30&&player.invincible<=0){
         player.hp=Math.max(0,player.hp-25); player.invincible=70;
-        spawnParticles(player.x,player.y,'#ff0000',18); updateHUD();
-        if(player.hp<=0){ cancelAnimationFrame(animFrame); setTimeout(()=>document.getElementById('game-over-screen').style.display='flex',400); }
+        spawnParticles(player.x,player.y,'#ff0000',18); updateHUD(); if(player.hp<=0)playerDie();
       }
     } else {
-      const a=Math.atan2(player.y-boss.y,player.x-boss.x);
-      boss.dir=Math.cos(a)>0?1:-1;
+      const a=Math.atan2(player.y-boss.y,player.x-boss.x); boss.dir=Math.cos(a)>0?1:-1;
       moveEntity(room,boss,Math.cos(a)*phData.speed*dt,Math.sin(a)*phData.speed*dt,18);
-      if(boss.attackCooldown>0) boss.attackCooldown-=dt;
+      if(boss.attackCooldown>0)boss.attackCooldown-=dt;
       if(Math.hypot(boss.x-player.x,boss.y-player.y)<34&&boss.attackCooldown<=0&&player.invincible<=0){
         player.hp=Math.max(0,player.hp-15); player.invincible=55; boss.attackCooldown=75;
-        spawnParticles(player.x,player.y,'#ff4400',10); updateHUD();
-        if(player.hp<=0){ cancelAnimationFrame(animFrame); setTimeout(()=>document.getElementById('game-over-screen').style.display='flex',400); }
+        spawnParticles(player.x,player.y,'#ff4400',10); updateHUD(); if(player.hp<=0)playerDie();
       }
     }
-    updateBossHUD(boss);
+    updateBossHUD(boss,"🐹 PATCHES THE HAMSTER 👑");
   }
 
+  // Nebguin AI
+  if(room.nebguin&&!room.nebguin.dead){
+    const nb=room.nebguin; nb.anim+=dt; if(nb.shakeTimer>0)nb.shakeTimer-=dt;
+    const distToPlayer=Math.hypot(player.x-nb.x,player.y-nb.y);
+    const a=Math.atan2(player.y-nb.y,player.x-nb.x);
+    nb.dir=Math.cos(a)>0?1:-1;
+    if(distToPlayer>60) moveEntity(room,nb,Math.cos(a)*1.8*dt,Math.sin(a)*1.8*dt,16);
+    nb.flameCooldown-=dt;
+    if(!nb.flaming&&nb.flameCooldown<=0&&distToPlayer<160){ nb.flaming=true; nb.flameTimer=60; nb.flameCooldown=120+Math.random()*80; }
+    if(nb.flaming){
+      nb.flameTimer-=dt;
+      if(nb.flameTimer<=0) nb.flaming=false;
+      const fa=Math.atan2(player.y-nb.y,player.x-nb.x);
+      for(let i=0;i<3;i++){
+        const fangle=fa+(Math.random()-0.5)*0.4;
+        nb.flames.push(makeFlameParticle(nb.x+nb.dir*16,nb.y-4,fangle,4.5));
+      }
+    }
+    nb.flames=nb.flames.filter(f=>f.life>0);
+    nb.flames.forEach(f=>{ f.x+=f.vx; f.y+=f.vy; f.vx*=0.95; f.vy*=0.95; f.life-=dt*1.2; if(tileAt(room,f.x,f.y)===1)f.life=0; });
+    if(nb.attackCooldown>0)nb.attackCooldown-=dt;
+    if(distToPlayer<30&&nb.attackCooldown<=0&&player.invincible<=0){
+      player.hp=Math.max(0,player.hp-12); player.invincible=45; nb.attackCooldown=65;
+      spawnParticles(player.x,player.y,'#ff4400',8); updateHUD(); if(player.hp<=0)playerDie();
+    }
+    updateBossHUD(nb,"⚠ NEBGUIN THE EVIL ⚠");
+  }
+
+  // Door / advance
   const allRatsDead=room.rats.every(r=>r.dead);
   const bossDone=!room.boss||room.boss.dead;
-  if(allRatsDead&&bossDone&&!room.doorOpen){
+  const nebDone=!room.nebguin||room.nebguin.dead;
+  if(allRatsDead&&bossDone&&nebDone&&!room.doorOpen&&!room.isSecret){
     room.doorOpen=true;
-    showMessage(room.boss?'PATCHES DEFEATED! Move right to escape!':'DOOR OPEN \u2014 move right to advance!',2500);
+    showMessage(room.boss?'PATCHES DEFEATED! Move right!':'DOOR OPEN — move right to advance!',2500);
   }
-
-  if(room.doorOpen){
-    const doorX=room.doorCol*TILE, doorY=room.doorRow*TILE+TILE/2;
+  if(room.isSecret&&allRatsDead&&nebDone&&!room.doorOpen){ room.doorOpen=true; showMessage('NEBGUIN DEFEATED! Walk up to exit.',2500); }
+  if(room.doorOpen&&!room.isSecret){
+    const doorX=room.doorCol*TILE,doorY=room.doorRow*TILE+TILE/2;
     if(player.x>doorX-8&&Math.abs(player.y-doorY)<TILE) advanceRoom();
   }
 
-  room.healthDrops = room.healthDrops.filter(drop => {
-    drop.anim += dt;
-    if(Math.hypot(player.x-drop.x, player.y-drop.y) < 18){
-      player.hp = Math.min(player.maxHp, player.hp + 30);
-      updateHUD();
-      spawnBonk(drop.x, drop.y-12, '+30 HP!');
-      spawnParticles(drop.x, drop.y, '#44ff88', 12);
-      return false;
+  // Banana pickups
+  room.healthDrops=room.healthDrops.filter(drop=>{
+    drop.anim+=dt;
+    if(Math.hypot(player.x-drop.x,player.y-drop.y)<18){
+      player.hp=Math.min(player.maxHp,player.hp+30); updateHUD();
+      spawnBonk(drop.x,drop.y-12,'+30 HP! 🍌');
+      spawnParticles(drop.x,drop.y,'#ffe033',12); return false;
     }
     return true;
   });
@@ -426,295 +565,282 @@ function update(dt){
   updateCamera();
 }
 
+function killRat(rat,room){
+  rat.dead=true; state.score+=100; updateHUD();
+  spawnParticles(rat.x,rat.y,COLOURS.blood,20);
+  if(Math.random()<0.1) room.healthDrops.push({x:rat.x,y:rat.y,anim:0});
+}
+
+function killNebguin(nb,room){
+  nb.dead=true; state.score+=500; updateHUD();
+  spawnParticles(nb.x,nb.y,'#0088ff',40);
+  spawnParticles(nb.x,nb.y,'#ff8800',40);
+  spawnBonk(nb.x,nb.y-50,'NEBGUIN DOWN! +500');
+  showMessage('NEBGUIN DEFEATED! FLAMETHROWER ACQUIRED! 🔥',4000);
+  state.player.weapon='flamethrower';
+  state.player.flameAmmo=120;
+  updateWeaponIndicator();
+  room.doorOpen=true;
+}
+
 function advanceRoom(){
   const nextIdx=state.roomIdx+1;
-  if(nextIdx>=ROOMS.length){
-    cancelAnimationFrame(animFrame);
-    document.getElementById('final-score').textContent='SCORE: '+state.score;
-    document.getElementById('win-screen').style.display='flex';
-    return;
-  }
-  if(ROOMS[nextIdx].boss){
-    triggerBossIntro(()=>{ loadRoom(nextIdx); });
-  } else {
-    loadRoom(nextIdx);
-  }
+  if(nextIdx>=ROOMS.length){ cancelAnimationFrame(animFrame); document.getElementById('final-score').textContent='SCORE: '+state.score; document.getElementById('win-screen').style.display='flex'; return; }
+  if(ROOMS[nextIdx].boss){ triggerIntro("🐹 PATCHES 👑","BEN'S DERANGED HAMSTER\nHAS BEEN WAITING FOR YE...",()=>{ loadRoom(nextIdx); }); }
+  else loadRoom(nextIdx);
 }
 
 function loadRoom(nextIdx){
-  state.roomIdx=nextIdx;
-  state.room=makeRoom(nextIdx);
+  state.roomIdx=nextIdx; state.room=makeRoom(nextIdx);
   const room=state.room;
-  state.player.x=2*TILE+TILE/2;
-  state.player.y=room.doorRow*TILE+TILE/2;
-  state.player.invincible=30;
-  state.camX=0; state.camY=0;
+  state.player.x=2*TILE+TILE/2; state.player.y=room.doorRow*TILE+TILE/2;
+  state.player.invincible=30; state.camX=0; state.camY=0;
   document.getElementById('room-label').textContent=ROOMS[nextIdx].name;
   showMessage(ROOMS[nextIdx].desc,2500);
-  if(!ROOMS[nextIdx].boss&&nextIdx%2===0){
-    state.player.hp=Math.min(state.player.maxHp,state.player.hp+20);
-    updateHUD();
-    showMessage('+20 HP!
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>BENGUIN: Holylands Rampage</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0a0a0f; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Press Start 2P',monospace; color:#fff; overflow:hidden; }
-  #game-wrapper { position:relative; display:flex; flex-direction:column; align-items:center; gap:0; }
-  #title-screen { position:fixed; inset:0; background:#0a0a0f; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:20px; }
-  #title-screen h1 { font-size:28px; color:#e63946; text-shadow:4px 4px 0 #7a0010,0 0 30px #e63946; animation:pulse 1.5s infinite; letter-spacing:4px; }
-  #title-screen .subtitle { font-size:9px; color:#aaa; text-align:center; line-height:2; }
-  #title-screen .start-btn { margin-top:20px; background:#e63946; color:#fff; border:none; padding:14px 28px; font-family:'Press Start 2P',monospace; font-size:12px; cursor:pointer; animation:blink 1s infinite; }
-  #title-screen .start-btn:hover { background:#ff6b6b; }
-  @keyframes pulse { 0%,100%{text-shadow:4px 4px 0 #7a0010,0 0 30px #e63946}50%{text-shadow:4px 4px 0 #7a0010,0 0 60px #ff6b6b} }
-  @keyframes blink { 50%{opacity:0} }
-  #hud { width:600px; display:flex; justify-content:space-between; align-items:center; font-size:7px; padding:4px 8px; background:#111; border:2px solid #333; }
-  #hud .hp-bar-wrap { display:flex; align-items:center; gap:6px; }
-  #hud .hp-bar { width:100px; height:10px; background:#333; border:1px solid #555; }
-  #hud .hp-fill { height:100%; background:#e63946; transition:width 0.2s; }
-  #boss-hud { width:600px; background:#1a0000; border:2px solid #9a0020; border-top:none; padding:5px 10px; display:none; }
-  #boss-hud .boss-title { font-size:7px; color:#ffd700; text-align:center; letter-spacing:3px; text-shadow:0 0 10px #ffd700; margin-bottom:4px; }
-  #boss-bar-wrap { background:#330000; height:16px; border:1px solid #660000; position:relative; }
-  #boss-hp-fill { height:100%; background:linear-gradient(90deg,#7a0010,#e63946,#ff4444); transition:width 0.15s; }
-  #boss-phase-txt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:5px; color:#fff; letter-spacing:1px; }
-  canvas { display:block; border:3px solid #333; image-rendering:pixelated; background:#1a0a00; }
-  #controls { font-size:6px; color:#666; text-align:center; line-height:2.2; margin-top:6px; }
-  #message-box { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); border:2px solid #e63946; padding:8px 16px; font-size:7px; color:#e63946; pointer-events:none; opacity:0; transition:opacity 0.3s; white-space:nowrap; z-index:10; }
-  #game-over-screen,#win-screen { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:20px; }
-  #game-over-screen h2 { font-size:24px; color:#e63946; }
-  #win-screen h2 { font-size:18px; color:#ffd700; text-shadow:0 0 20px #ffd700; }
-  .restart-btn { background:#e63946; color:#fff; border:none; padding:12px 24px; font-family:'Press Start 2P',monospace; font-size:10px; cursor:pointer; }
-  .restart-btn:hover { background:#ff6b6b; }
-  .room-label { font-size:7px; color:#888; }
-  #boss-intro { position:fixed; inset:0; background:rgba(0,0,0,0.0); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; pointer-events:none; }
-  #boss-intro h2 { font-size:22px; color:#ffd700; text-shadow:0 0 30px #ffd700,0 0 60px #e63946; opacity:0; transition:opacity 0.5s; letter-spacing:4px; }
-  #boss-intro p { font-size:8px; color:#e63946; opacity:0; transition:opacity 0.5s 0.3s; margin-top:10px; text-align:center; line-height:2; }
-</style>
-</head>
-<body>
-
-<div id="title-screen">
-  <h1>&#x1F427; BENGUIN</h1>
-  <div class="subtitle">HOLYLANDS RAMPAGE<br>&#x2500;&#x2500; BELFAST'S FINEST ROGUELIKE &#x2500;&#x2500;<br><br>Fight through a Holylands terrace house<br>Survive the rat infestation<br>Defeat the Rat King!</div>
-  <button class="start-btn" onclick="startGame()">&#x25B6; START GAME</button>
-  <div style="font-size:6px;color:#555;margin-top:10px;">WASD / Arrow Keys to move &middot; SPACE to attack</div>
-</div>
-
-<div id="boss-intro">
-  <h2 id="boss-intro-title">&#x1F439; PATCHES &#x1F451;</h2>
-  <p id="boss-intro-sub">BEN'S DERANGED HAMSTER<br>HAS BEEN WAITING FOR YE...</p>
-</div>
-
-<div id="game-over-screen">
-  <h2>YE DIED</h2>
-  <div style="font-size:8px;color:#aaa;">The rats got ye, big lad.</div>
-  <button class="restart-btn" onclick="startGame()">TRY AGAIN</button>
-</div>
-
-<div id="win-screen">
-  <h2>&#x1F3C6; HOLYLANDS HERO!</h2>
-  <div style="font-size:7px;color:#aaa;text-align:center;line-height:2;">Ye bate Patches the Hamster!<br>Pure class, so ye are.</div>
-  <div id="final-score" style="font-size:9px;color:#ffd700;margin-top:6px;"></div>
-  <button class="restart-btn" onclick="startGame()">PLAY AGAIN</button>
-</div>
-
-<div id="game-wrapper">
-  <div id="hud">
-    <div class="hp-bar-wrap">
-      <span>HP</span>
-      <div class="hp-bar"><div class="hp-fill" id="hp-fill"></div></div>
-      <span id="hp-text">100</span>
-    </div>
-    <div id="room-label" class="room-label">FRONT DOOR</div>
-    <div><span>SCORE: </span><span id="score">0</span></div>
-  </div>
-  <div id="boss-hud">
-    <div class="boss-title">&#x1F439; PATCHES THE HAMSTER &#x1F451;</div>
-    <div id="boss-bar-wrap"><div id="boss-hp-fill"></div><div id="boss-phase-txt">PHASE 1 &#x2014; SCURRYING</div></div>
-  </div>
-  <canvas id="canvas" width="600" height="400"></canvas>
-  <div id="controls">WASD / ARROWS &middot; MOVE &nbsp;|&nbsp; SPACE &middot; ATTACK &nbsp;|&nbsp; Kill all enemies to advance</div>
-  <div id="message-box"></div>
-</div>
-
-<script>
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-const W=600, H=400, TILE=32;
-
-const COLOURS = {
-  floor:['#3a2510','#2e1c0b','#422c14'],
-  wall:['#c0622a','#a85020','#d4743a'],
-  wallTop:['#e8845a','#d06838','#f09060'],
-  wallShade:['#7a3010','#6a2808','#8a3818'],
-  wallMortar:'#8a5a3a',
-  blood:'#e63946',
-};
-
-const ROOMS = [
-  { name:"FRONT DOOR",   cols:18, rows:11, desc:"Reek of chips and last night's carry-out.", boss:false },
-  { name:"HALLWAY",      cols:18, rows:11, desc:"Mouldy carpet. Someone's lost shoe.", boss:false },
-  { name:"LIVING ROOM",  cols:18, rows:11, desc:"Broken IKEA furniture. Dead plants.", boss:false },
-  { name:"KITCHEN",      cols:18, rows:11, desc:"Dishes from three weeks ago.", boss:false },
-  { name:"BATHROOM",     cols:18, rows:11, desc:"Ye don't want to know.", boss:false },
-  { name:"RYAN'S ROOM",  cols:18, rows:11, desc:"Posters everywhere. Empty Boost cans.", boss:false },
-  { name:"SHAUN'S ROOM", cols:18, rows:11, desc:"FIFA paused. Shaun's nowhere to be seen.", boss:false },
-  { name:"BEN'S ROOM",   cols:18, rows:11, desc:"A foul stench... something stirs in the corner.", boss:true },
-];
-
-const BOSS_MAX_HP = 300;
-const BOSS_PHASES = [
-  { threshold:1.0,  label:"PHASE 1 \u2014 CHEEK STUFFED",  speed:1.4, spawnRate:300 },
-  { threshold:0.66, label:"PHASE 2 \u2014 WHEEL SPINNING",  speed:2.0, spawnRate:180 },
-  { threshold:0.33, label:"PHASE 3 \u2014 FULL BERSERK",    speed:2.8, spawnRate:100 },
-];
-
-let state, lastTime=0, animFrame;
-
-function makeRat(x, y) {
-  return { x, y, hp:30, maxHp:30, vx:0, vy:0, dir:1, anim:0, attackCooldown:0, dead:false, moveTimer:0 };
+  if(!ROOMS[nextIdx].boss&&nextIdx%2===0){ state.player.hp=Math.min(state.player.maxHp,state.player.hp+20); updateHUD(); showMessage('+20 HP! '+ROOMS[nextIdx].desc,2500); }
+  updateBossHUD(room.boss,room.boss?"🐹 PATCHES THE HAMSTER 👑":null);
 }
 
-function makeRoom(idx) {
-  const room = ROOMS[idx];
-  const cols=room.cols, rows=room.rows;
-  const tiles=[];
-  for(let r=0;r<rows;r++){
-    tiles.push([]);
-    for(let c=0;c<cols;c++) tiles[r].push((r===0||r===rows-1||c===0||c===cols-1)?1:0);
+// ── DRAW BENGUIN / NEBGUIN
+function drawBenguin(x,y,dir,anim,attacking,invincible,isEvil=false,flaming=false){
+  ctx.save(); ctx.translate(x,y); if(dir<0)ctx.scale(-1,1);
+  if(invincible>0&&Math.floor(Date.now()/80)%2===0){ ctx.restore(); return; }
+  const bob=Math.sin(anim*0.3)*2;
+  if(isEvil){ ctx.globalAlpha=0.25+Math.sin(anim*0.3)*0.1; ctx.fillStyle='#0044cc'; ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+  ctx.fillStyle=isEvil?'#1a1a3a':'#e8e8e8'; ctx.fillRect(-12,-8+bob,24,26);
+  ctx.fillStyle=isEvil?'#222244':'#fff'; ctx.fillRect(-7,-4+bob,14,18);
+  ctx.fillStyle=isEvil?'#4488ff':'#e63946'; ctx.font='bold 5px monospace'; ctx.textAlign='center';
+  if(isEvil){ ctx.fillText('EVIL',0,2+bob); ctx.fillText('MODE',0,8+bob); } else { ctx.fillText('NO',0,2+bob); ctx.fillText('IDEA',0,8+bob); }
+  ctx.fillStyle=isEvil?'#1a1a4a':'#555'; ctx.fillRect(-16,-4+bob,5,14); ctx.fillRect(11,-4+bob,5,14);
+  ctx.fillStyle=isEvil?'#1a1a3a':'#fff'; ctx.fillRect(-11,-24+bob,22,18);
+  ctx.fillStyle=isEvil?'#0033aa':'#8B4513';
+  for(let i=-10;i<=10;i+=4){ const h=3+Math.abs(i)%3; ctx.fillRect(i,-24-h+bob,3,h+2); }
+  ctx.fillStyle='#222'; ctx.fillRect(-11,-18+bob,9,7); ctx.fillRect(2,-18+bob,9,7); ctx.fillRect(-2,-17+bob,4,2);
+  ctx.fillStyle=isEvil?'#002244':'#e0f0ff'; ctx.globalAlpha=0.5; ctx.fillRect(-10,-17+bob,7,5); ctx.fillRect(3,-17+bob,7,5); ctx.globalAlpha=1;
+  ctx.fillStyle=isEvil?'#ff0000':'#111'; ctx.fillRect(-7,-16+bob,3,3); ctx.fillRect(5,-16+bob,3,3);
+  if(isEvil){ ctx.globalAlpha=0.5+Math.sin(anim*0.8)*0.3; ctx.fillStyle='#ff4400'; ctx.beginPath(); ctx.arc(-5,-14+bob,4,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(6,-14+bob,4,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+  ctx.fillStyle='#e8a020'; ctx.fillRect(-3,-12+bob,6,5);
+  ctx.fillStyle='#333'; ctx.fillRect(-13,-22+bob,4,8); ctx.fillRect(9,-22+bob,4,8); ctx.fillRect(-11,-24+bob,22,3);
+  ctx.fillStyle='#e8a020'; ctx.fillRect(-9,18+bob,8,5); ctx.fillRect(1,18+bob,8,5);
+
+  if(isEvil){
+    ctx.save(); ctx.translate(14,-2+bob);
+    ctx.fillStyle='#334455'; ctx.fillRect(0,-8,10,20);
+    ctx.fillStyle='#445566'; ctx.fillRect(1,-7,8,5);
+    ctx.fillStyle='#cc2200'; ctx.fillRect(0,4,10,4);
+    ctx.fillStyle='#222'; ctx.fillRect(8,-3,18,5);
+    ctx.fillStyle='#444'; ctx.fillRect(8,-3,3,5);
+    ctx.fillStyle='#111'; ctx.fillRect(24,-4,5,7);
+    if(flaming){
+      ctx.globalAlpha=0.7+Math.sin(Date.now()*0.1)*0.3;
+      for(let i=0;i<4;i++){ ctx.fillStyle=['#ff8800','#ff4400','#ffcc00'][i%3]; ctx.beginPath(); ctx.ellipse(32+i*5,(Math.random()-0.5)*4,4+Math.random()*4,3,0,0,Math.PI*2); ctx.fill(); }
+      ctx.globalAlpha=1;
+    }
+    ctx.restore();
+  } else {
+    ctx.save();
+    const sw=attacking>0?-Math.PI*0.7+(attacking/8)*Math.PI*1.1:Math.PI*0.15+Math.sin(anim*0.2)*0.08;
+    ctx.translate(14,-4+bob); ctx.rotate(sw);
+    ctx.fillStyle='#a0632a'; ctx.fillRect(-2,0,4,26);
+    ctx.fillStyle='#c8844a'; ctx.fillRect(-1,0,1,26);
+    ctx.fillStyle='#7a4a18'; ctx.fillRect(-3,24,6,4);
+    ctx.fillStyle='#d4a030'; ctx.fillRect(-9,-14,18,13);
+    ctx.fillStyle='#f0c050'; ctx.fillRect(-9,-14,18,4);
+    ctx.fillStyle='#9a7010'; ctx.fillRect(7,-13,2,11);
+    ctx.fillStyle='#c0c0c0'; ctx.fillRect(-9,-7,18,3);
+    ctx.fillStyle='#e8e8e8'; ctx.fillRect(-9,-7,18,1);
+    if(attacking>4){ ctx.fillStyle='rgba(255,240,80,0.85)'; ctx.fillRect(-11,-16,22,5); }
+    ctx.restore();
   }
-  const dw=[[[2,3],[2,4],[2,5]],[[rows-3,cols-4],[rows-3,cols-5]],[[4,8],[5,8]],[[7,14],[6,14]]];
-  dw.forEach(g=>g.forEach(([r,c])=>{ if(r>0&&r<rows-1&&c>0&&c<cols-1) tiles[r][c]=1; }));
-  const doorRow=Math.floor(rows/2), doorCol=cols-1;
-  tiles[doorRow][doorCol]=0;
+  ctx.restore();
+}
 
-  const numRats = room.boss ? 0 : 2+idx*2;
-  const rats=[];
-  for(let i=0;i<numRats;i++){
-    let rx,ry;
-    do{ rx=2+Math.floor(Math.random()*(cols-4)); ry=2+Math.floor(Math.random()*(rows-4)); }
-    while(tiles[ry][rx]!==0 || rx < 7);
-    rats.push(makeRat(rx*TILE+TILE/2, ry*TILE+TILE/2));
+function drawRat(x,y,dir,anim,hp,maxHp){
+  ctx.save(); ctx.translate(x,y); if(dir<0)ctx.scale(-1,1);
+  const bob=Math.sin(anim*0.4)*1.5;
+  ctx.fillStyle='#888'; ctx.fillRect(-10,-6+bob,20,12);
+  ctx.fillStyle='#999'; ctx.fillRect(7,-8+bob,10,9);
+  ctx.fillStyle='#cc8888'; ctx.fillRect(9,-12+bob,4,5); ctx.fillRect(13,-12+bob,4,5);
+  ctx.fillStyle='#e63946'; ctx.fillRect(16,-5+bob,3,2);
+  ctx.fillStyle='#ff2222'; ctx.fillRect(14,-7+bob,3,3);
+  ctx.fillStyle='#666'; ctx.fillRect(-14,-1+bob,10,3); ctx.fillRect(-20,1+bob,8,2);
+  ctx.fillStyle='#777'; ctx.fillRect(-6,5+bob,4,5); ctx.fillRect(2,5+bob,4,5);
+  ctx.fillStyle='#333'; ctx.fillRect(-12,-18,24,3);
+  ctx.fillStyle=hp>maxHp*0.5?'#4caf50':'#e63946'; ctx.fillRect(-12,-18,24*(hp/maxHp),3);
+  ctx.restore();
+}
+
+function drawBanana(drop){
+  const bob=Math.sin(drop.anim*0.15)*3;
+  ctx.save(); ctx.translate(drop.x,drop.y+bob);
+  ctx.strokeStyle='#e8c800'; ctx.lineWidth=7; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(0,2,8,-Math.PI*0.1,Math.PI*0.9); ctx.stroke();
+  ctx.strokeStyle='#ffd700'; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.arc(0,2,8,-Math.PI*0.1,Math.PI*0.9); ctx.stroke();
+  ctx.fillStyle='#a07800'; ctx.fillRect(-7,-1,3,3); ctx.fillRect(6,8,3,3);
+  ctx.strokeStyle='#fff8cc'; ctx.lineWidth=2; ctx.globalAlpha=0.5;
+  ctx.beginPath(); ctx.arc(0,2,6,0.1,Math.PI*0.7); ctx.stroke();
+  ctx.globalAlpha=0.2+Math.sin(drop.anim*0.2)*0.1;
+  ctx.fillStyle='#ffe033'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+function drawPatches(boss){
+  ctx.save();
+  const shake=boss.shakeTimer>0?(Math.random()-0.5)*6:0;
+  ctx.translate(boss.x+shake,boss.y); if(boss.dir<0)ctx.scale(-1,1);
+  const bob=Math.sin(boss.anim*0.2)*4, ph=boss.phase;
+  ctx.save(); ctx.globalAlpha=0.28+Math.sin(boss.anim*0.4)*0.12;
+  ctx.fillStyle=['rgba(255,160,0,0.6)','rgba(255,80,0,0.7)','rgba(255,0,0,0.8)'][ph];
+  ctx.beginPath(); ctx.arc(0,bob,54,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+  ctx.fillStyle='#c07030'; ctx.fillRect(-20,14+bob,12,10); ctx.fillRect(8,14+bob,12,10);
+  ctx.fillStyle='#e8b878'; ctx.beginPath(); ctx.ellipse(-14,26+bob,8,4,0,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(14,26+bob,8,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#d4924a'; ctx.beginPath(); ctx.ellipse(0,8+bob,26,20,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f5e0b0'; ctx.beginPath(); ctx.ellipse(0,10+bob,16,14,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#7a3a10'; ctx.beginPath(); ctx.ellipse(-16,4+bob,10,8,-0.4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e8c090'; ctx.beginPath(); ctx.ellipse(-27,8+bob,5,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e0a060'; ctx.beginPath(); ctx.ellipse(-26,-8+bob,16,18,0.15,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(26,-8+bob,16,18,-0.15,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0c080'; ctx.beginPath(); ctx.ellipse(-28,-12+bob,8,9,0.15,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(28,-12+bob,8,9,-0.15,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#d4924a'; ctx.beginPath(); ctx.arc(0,-20+bob,22,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#7a3a10'; ctx.beginPath(); ctx.ellipse(4,-32+bob,12,8,0.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#d4924a'; ctx.beginPath(); ctx.arc(-16,-38+bob,10,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(16,-38+bob,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0a0a0'; ctx.beginPath(); ctx.arc(-16,-38+bob,6,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(16,-38+bob,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f06090'; ctx.beginPath(); ctx.ellipse(0,-12+bob,5,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#c04070'; ctx.beginPath(); ctx.arc(-2,-12+bob,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(2,-12+bob,2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#a03050'; ctx.fillRect(-1,-8+bob,2,3);
+  ctx.strokeStyle='#ffffffcc'; ctx.lineWidth=1.5;
+  [[5,-11,28,-8],[5,-12,26,-14],[5,-10,27,-6],[-5,-11,-28,-8],[-5,-12,-26,-14],[-5,-10,-27,-6]].forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1+bob); ctx.lineTo(x2,y2+bob); ctx.stroke(); });
+  ctx.lineWidth=1;
+  ctx.fillStyle='#1a0800'; ctx.beginPath(); ctx.arc(10,-24+bob,7,0,Math.PI*2); ctx.fill();
+  const eyeGlow=['#ff8844','#ff4400','#ff0000'][ph];
+  ctx.fillStyle=eyeGlow; ctx.beginPath(); ctx.arc(10,-24+bob,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(10,-24+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(8,-26+bob,1.5,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=0.35+Math.sin(boss.anim*0.9)*0.25; ctx.fillStyle=eyeGlow; ctx.beginPath(); ctx.arc(10,-24+bob,9,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+  ctx.fillStyle='#2a1808'; ctx.fillRect(-20,-28+bob,22,3);
+  ctx.fillStyle='#1e1208'; ctx.beginPath(); ctx.ellipse(-10,-24+bob,9,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#2e1c10'; ctx.beginPath(); ctx.ellipse(-10,-25+bob,7,5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#4a3020';
+  for(let i=0;i<6;i++){ const a=(i/6)*Math.PI*2; ctx.fillRect(-10+Math.cos(a)*8-1,-24+bob+Math.sin(a)*6-1,2,2); }
+  ctx.fillStyle='#666'; ctx.beginPath(); ctx.arc(-10,-25+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1e1208'; ctx.fillRect(-12,-25+bob,2,2); ctx.fillRect(-9,-25+bob,2,2); ctx.fillRect(-11,-22+bob,4,1);
+  ctx.fillStyle='#ffd700'; ctx.fillRect(-13,-48+bob,26,9); ctx.fillRect(-13,-57+bob,6,10); ctx.fillRect(-4,-62+bob,8,15); ctx.fillRect(7,-57+bob,6,10);
+  ctx.fillStyle='#e63946'; ctx.beginPath(); ctx.arc(-10,-52+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#44ddff'; ctx.beginPath(); ctx.arc(0,-55+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#44ff88'; ctx.beginPath(); ctx.arc(10,-52+bob,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,220,0.5)'; ctx.fillRect(-12,-47+bob,24,3);
+  if(boss.charging){ ctx.globalAlpha=0.4+Math.sin(Date.now()*0.05)*0.35; ctx.fillStyle='#ff6600'; ctx.beginPath(); ctx.arc(0,bob,58,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+  const bw=72,bh=7; ctx.fillStyle='#220000'; ctx.fillRect(-bw/2,-74+bob,bw,bh);
+  const pct=boss.hp/boss.maxHp; ctx.fillStyle=pct>0.66?'#e8a020':pct>0.33?'#ff6600':'#ff2222'; ctx.fillRect(-bw/2,-74+bob,bw*pct,bh);
+  ctx.strokeStyle='#664400'; ctx.lineWidth=1; ctx.strokeRect(-bw/2,-74+bob,bw,bh);
+  ctx.fillStyle='rgba(255,215,0,0.9)'; ctx.fillRect(-bw/2+bw*0.33-1,-74+bob,2,bh); ctx.fillRect(-bw/2+bw*0.66-1,-74+bob,2,bh);
+  ctx.restore();
+}
+
+function drawNebguinFlames(nb){
+  nb.flames.forEach(f=>{
+    ctx.globalAlpha=Math.min(1,f.life/f.maxLife)*0.85;
+    const t=1-f.life/f.maxLife;
+    ctx.fillStyle=t<0.4?'#ffcc00':t<0.7?'#ff6600':'#cc1100';
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.size*(1-t*0.6),0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(-Math.round(state.camX),-Math.round(state.camY));
+  const{room,player}=state;
+
+  for(let r=0;r<room.rows;r++){
+    for(let c=0;c<room.cols;c++){
+      const tx=c*TILE,ty=r*TILE,rawTile=room.tiles[r][c];
+      if(rawTile===2){
+        ctx.fillStyle=COLOURS.wall[(r*3+c)%3]; ctx.fillRect(tx,ty,TILE,TILE);
+        ctx.fillStyle=COLOURS.wallTop[(r+c)%3]; ctx.fillRect(tx,ty,TILE,5);
+        ctx.fillStyle=COLOURS.wallShade[c%3]; ctx.fillRect(tx+TILE-4,ty+5,4,TILE-5);
+        ctx.strokeStyle='#1a0a00'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(tx+8,ty+4); ctx.lineTo(tx+14,ty+14); ctx.lineTo(tx+10,ty+20); ctx.lineTo(tx+18,ty+30); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx+20,ty+6); ctx.lineTo(tx+16,ty+14); ctx.lineTo(tx+22,ty+22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx+6,ty+20); ctx.lineTo(tx+12,ty+26); ctx.stroke();
+        ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(tx+8,ty+13,3,3); ctx.fillRect(tx+14,ty+19,2,2); ctx.fillRect(tx+19,ty+21,2,2);
+        ctx.fillStyle='rgba(255,200,100,0.15)'; ctx.fillRect(tx,ty,TILE,TILE);
+        ctx.fillStyle='rgba(255,220,0,0.7)'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+        ctx.fillText('!',tx+TILE/2,ty+TILE-4);
+      } else if(rawTile===3){
+        ctx.fillStyle='#002244'; ctx.fillRect(tx,ty,TILE,TILE);
+        ctx.fillStyle='rgba(0,100,255,0.3)'; ctx.fillRect(tx+4,ty+4,TILE-8,TILE-8);
+        ctx.fillStyle='#4488ff'; ctx.font='8px monospace'; ctx.textAlign='center'; ctx.fillText('EXIT',tx+TILE/2,ty+TILE/2+3);
+      } else if(rawTile===1){
+        ctx.fillStyle=COLOURS.wall[(r*3+c)%3]; ctx.fillRect(tx,ty,TILE,TILE);
+        ctx.fillStyle=COLOURS.wallTop[(r+c)%3]; ctx.fillRect(tx,ty,TILE,5);
+        ctx.fillStyle=COLOURS.wallShade[c%3]; ctx.fillRect(tx+TILE-4,ty+5,4,TILE-5);
+        ctx.fillStyle=COLOURS.wallMortar; ctx.fillRect(tx,ty+TILE/2,TILE,2);
+        const off=(r%2===0)?0:TILE/2;
+        ctx.fillRect(tx+off,ty+5,2,TILE/2-5); ctx.fillRect(tx+(off+TILE/2)%TILE,ty+5,2,TILE/2-5);
+        ctx.fillRect(tx+(off+TILE/4)%TILE,ty+TILE/2+2,2,TILE/2-2); ctx.fillRect(tx+(off+3*TILE/4)%TILE,ty+TILE/2+2,2,TILE/2-2);
+        ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(tx+2,ty+1,TILE-6,2);
+      } else {
+        ctx.fillStyle=COLOURS.floor[(r+c)%3]; ctx.fillRect(tx,ty,TILE,TILE);
+        if((r+c)%4===0){ ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(tx+10,ty+10,6,6); }
+        if(room.boss&&!room.boss.dead){ ctx.fillStyle='rgba(100,0,0,0.12)'; ctx.fillRect(tx,ty,TILE,TILE); }
+        if(room.isSecret){ ctx.fillStyle='rgba(0,0,60,0.18)'; ctx.fillRect(tx,ty,TILE,TILE); }
+      }
+    }
   }
 
-  let boss = null;
-  if(room.boss){
-    boss = {
-      x: Math.floor(cols/2)*TILE+TILE/2,
-      y: Math.floor(rows/2)*TILE+TILE/2,
-      hp: BOSS_MAX_HP, maxHp: BOSS_MAX_HP,
-      dir:1, anim:0, phase:0,
-      attackCooldown:0,
-      chargeCooldown:120,
-      chargeVx:0, chargeVy:0,
-      charging:false, chargeTimer:0,
-      spawnTimer:200,
-      dead:false, shakeTimer:0,
-    };
+  if(!room.doorOpen&&!room.isSecret){
+    const dx=room.doorCol*TILE,dy=room.doorRow*TILE;
+    ctx.fillStyle='#8B4513'; ctx.fillRect(dx,dy,TILE,TILE);
+    ctx.fillStyle='#5C2D0A'; ctx.fillRect(dx+6,dy+4,TILE-12,TILE-8);
+    ctx.fillStyle='#ffd700'; ctx.fillRect(dx+TILE-8,dy+TILE/2-2,4,4);
+  } else if(room.doorOpen&&!room.isSecret){
+    const dx=room.doorCol*TILE,dy=room.doorRow*TILE;
+    ctx.fillStyle='#0a0500'; ctx.fillRect(dx,dy,TILE,TILE);
+    ctx.fillStyle='rgba(255,215,0,0.3)'; ctx.fillRect(dx+2,dy+2,TILE-4,TILE-4);
   }
 
-  return { tiles, cols, rows, doorRow, doorCol, doorOpen:false, rats, boss, idx, healthDrops:[] };
+  room.rats.forEach(rat=>{ if(!rat.dead) drawRat(rat.x,rat.y,rat.dir,rat.anim,rat.hp,rat.maxHp); });
+  room.healthDrops.forEach(drop=>{ drawBanana(drop); });
+  if(room.boss&&!room.boss.dead) drawPatches(room.boss);
+  if(room.nebguin&&!room.nebguin.dead) drawNebguinFlames(room.nebguin);
+  if(room.nebguin&&!room.nebguin.dead) drawBenguin(room.nebguin.x,room.nebguin.y,room.nebguin.dir,room.nebguin.anim,0,0,true,room.nebguin.flaming);
+
+  state.particles.forEach(p=>{
+    ctx.globalAlpha=Math.min(1,p.life/30);
+    if(p.isFire){
+      const t=1-p.life/32;
+      ctx.fillStyle=t<0.3?'#ffcc00':t<0.6?'#ff6600':'#cc1100';
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(1-t*0.5),0,Math.PI*2); ctx.fill();
+    } else if(p.text){
+      ctx.fillStyle=p.col; ctx.font='bold 10px "Press Start 2P",monospace'; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y);
+    } else {
+      ctx.fillStyle=p.col; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+    }
+  });
+  ctx.globalAlpha=1;
+
+  const usingFlame=player.weapon==='flamethrower'&&player.attackCooldown>16;
+  drawBenguin(player.x,player.y,player.dir,player.anim,player.attackTimer,player.invincible,false,usingFlame);
+
+  if(player.attackTimer>0&&player.weapon==='mallet'){
+    ctx.strokeStyle='rgba(255,200,0,0.25)'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.arc(player.x,player.y,55,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  ctx.restore();
+
+  const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
+  vg.addColorStop(0,'transparent'); vg.addColorStop(1,'rgba(0,0,0,0.6)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  if(room.boss&&!room.boss.dead){ const bv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); bv.addColorStop(0,'transparent'); bv.addColorStop(1,'rgba(120,0,0,0.4)'); ctx.fillStyle=bv; ctx.fillRect(0,0,W,H); }
+  if(room.isSecret){ const sv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); sv.addColorStop(0,'transparent'); sv.addColorStop(1,'rgba(0,0,120,0.45)'); ctx.fillStyle=sv; ctx.fillRect(0,0,W,H); }
 }
-
-function startGame() {
-  document.getElementById('title-screen').style.display='none';
-  document.getElementById('game-over-screen').style.display='none';
-  document.getElementById('win-screen').style.display='none';
-  document.getElementById('boss-hud').style.display='none';
-  cancelAnimationFrame(animFrame);
-  const startRoom=makeRoom(0);
-  state = {
-    room:startRoom, roomIdx:0,
-    player:{ x:2*TILE+TILE/2, y:Math.floor(startRoom.rows/2)*TILE+TILE/2,
-      hp:100, maxHp:100, speed:3, dir:1, anim:0,
-      attackTimer:0, attackCooldown:0, invincible:0 },
-    score:0, keys:{}, particles:[], camX:0, camY:0,
-  };
-  updateHUD();
-  document.getElementById('room-label').textContent=ROOMS[0].name;
-  showMessage(ROOMS[0].desc, 2500);
-  lastTime=0;
-  loop();
-}
-
-document.addEventListener('keydown', e=>{
-  if(state) state.keys[e.code]=true;
-  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
-});
-document.addEventListener('keyup', e=>{ if(state) state.keys[e.code]=false; });
-
-function tileAt(room,px,py){ const col=Math.floor(px/TILE),row=Math.floor(py/TILE); if(row<0||row>=room.rows||col<0||col>=room.cols)return 1; return room.tiles[row][col]; }
-function collidesWall(room,x,y,r){ for(const[dx,dy]of[[-r,-r],[r,-r],[-r,r],[r,r]]){ if(tileAt(room,x+dx,y+dy)===1)return true; } return false; }
-function moveEntity(room,ent,dx,dy,radius){ const nx=ent.x+dx,ny=ent.y+dy; if(!collidesWall(room,nx,ent.y,radius))ent.x=nx; if(!collidesWall(room,ent.x,ny,radius))ent.y=ny; }
-
-function spawnParticles(x,y,col,n){ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2,s=1+Math.random()*3; state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col,life:30+Math.random()*20,size:3+Math.random()*3,text:null}); } }
-function spawnBonk(x,y,txt='BONK!'){ state.particles.push({x,y,vx:(Math.random()-0.5)*2,vy:-2.5,col:'#ffdd00',life:40,size:0,text:txt}); }
-
-let msgTimeout;
-function showMessage(txt,dur=1800){ const el=document.getElementById('message-box'); el.textContent=txt; el.style.opacity=1; clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>el.style.opacity=0,dur); }
-
-function updateHUD(){ const p=state.player; document.getElementById('hp-fill').style.width=(p.hp/p.maxHp*100)+'%'; document.getElementById('hp-text').textContent=p.hp; document.getElementById('score').textContent=state.score; }
-
-function getBossPhase(boss){ const r=boss.hp/boss.maxHp; if(r<=0.33)return 2; if(r<=0.66)return 1; return 0; }
-
-function updateBossHUD(boss){
-  if(!boss){ document.getElementById('boss-hud').style.display='none'; return; }
-  document.getElementById('boss-hud').style.display='block';
-  document.getElementById('boss-hp-fill').style.width=(boss.hp/boss.maxHp*100)+'%';
-  const ph=getBossPhase(boss);
-  document.getElementById('boss-phase-txt').textContent=BOSS_PHASES[ph].label;
-  const cols=['linear-gradient(90deg,#7a0010,#e63946)','linear-gradient(90deg,#7a0010,#cc2222)','linear-gradient(90deg,#550000,#ff2222)'];
-  document.getElementById('boss-hp-fill').style.background=cols[ph];
-}
-
-function updateCamera(){ const tx=state.player.x-W/2,ty=state.player.y-H/2,maxX=state.room.cols*TILE-W,maxY=state.room.rows*TILE-H; state.camX+=(Math.max(0,Math.min(maxX,tx))-state.camX)*0.15; state.camY+=(Math.max(0,Math.min(maxY,ty))-state.camY)*0.15; }
-
-function triggerBossIntro(cb){
-  const el=document.getElementById('boss-intro');
-  const title=document.getElementById('boss-intro-title');
-  const sub=document.getElementById('boss-intro-sub');
-  el.style.display='flex'; el.style.background='rgba(0,0,0,0.85)';
-  title.style.opacity='0'; sub.style.opacity='0';
-  setTimeout(()=>{ title.style.opacity='1'; sub.style.opacity='1'; },100);
-  setTimeout(()=>{ title.style.opacity='0'; sub.style.opacity='0'; },2400);
-  setTimeout(()=>{ el.style.display='none'; cb(); },3000);
-}
-
-function loop(ts=0){
-  const dt=Math.min((ts-lastTime)/16.67,3);
-  lastTime=ts;
-  update(dt); draw();
-  animFrame=requestAnimationFrame(loop);
-}
-
-function update(dt){
-  const{player,room,keys}=state;
-
-  let dx=0,dy=0;
-  if(keys['ArrowLeft']||keys['KeyA'])  dx-=player.speed;
-  if(keys['ArrowRight']||keys['KeyD']) dx+=player.speed;
-  if(keys['ArrowUp']||keys['KeyW'])    dy-=player.speed;
-  if(keys['ArrowDown']||keys['KeyS'])  dy+=player.speed;
-  if(dx||dy){ const l=Math.sqrt(dx*dx+dy*dy); dx=dx/l*player.speed; dy=dy/l*player.speed; if(dx)player.dir=dx>0?1:-1; player.anim+=dt; }
-  moveEntity(room,player,dx*dt,dy*dt,10);
-
-  if(player.attackCooldown>0) player.attackCooldown-=dt;
-  if(player.attackTimer>0)    player.attackTimer-=dt;
-
-  if((keys['Space']||keys['KeyZ'])&&player.attackCooldown<=0){
-    player.attackTimer=8; player.attackCooldown=20;
-    room.rats.forEach(rat=>{
-      if(rat.dead)return;
-      if(Math.hypot(rat.x-player.x,rat.y-player.y)<55){
-        rat.hp-=20; spawnParticles(rat.x,rat.y,COLOURS.blood,8); spawnBonk(rat.x,rat.y-16);
-        if(rat.hp<=0){
-          rat.dead=true; state.score+=100; updateHUD();
-          spawnParticles(rat.x,rat.y,COLOURS.blood,20);
-          if(Math.random()<0.1){ room.healthDrops.push({x:rat.x,y:rat.y,bob:0,anim:0}
+</script>
+</body>
+</html>
     </main>
     <footer>
         <p>
