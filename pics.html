@@ -26,7 +26,7 @@
         <div class="user-actions" id="user-actions"></div>
     </header>
     <main class="quotes-main">
-      <html lang="en">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>BENGUIN: Holylands Rampage</title>
@@ -70,14 +70,14 @@
 
 <div id="title-screen">
   <h1>&#x1F427; BENGUIN</h1>
-  <div class="subtitle">HOLYLANDS RAMPAGE<br>── BELFAST'S FINEST ROGUELIKE ──<br><br>Fight through a Holylands terrace house<br>Survive the rat infestation<br>Defeat Patches! Find the secret room!</div>
+  <div class="subtitle">HOLYLANDS RAMPAGE<br>── BELFAST'S FINEST ROGUELIKE ──<br><br>Fight through a Holylands terrace house<br>Survive the rat infestation<br>Two secret rooms! Find them both!</div>
   <button class="start-btn" onclick="startGame()">▶ START GAME</button>
-  <div style="font-size:6px;color:#555;margin-top:10px;">WASD/Arrows · move &nbsp;|&nbsp; SPACE · attack &nbsp;|&nbsp; Walk into cracked wall to break it</div>
+  <div style="font-size:6px;color:#555;margin-top:10px;">WASD/Arrows · move | SPACE · attack | Walk into cracked walls to break them</div>
 </div>
 
 <div id="boss-intro">
-  <h2 id="boss-intro-title">⚠ NEBGUIN ⚠</h2>
-  <p id="boss-intro-sub">EVIL BENGUIN FROM THE MIRROR DIMENSION<br>HE HAS A FLAMETHROWER</p>
+  <h2 id="boss-intro-title">👑 RAT KING 👑</h2>
+  <p id="boss-intro-sub">LORD OF THE HOLYLANDS SEWERS</p>
 </div>
 
 <div id="game-over-screen">
@@ -111,7 +111,7 @@
     <div id="boss-bar-wrap"><div id="boss-hp-fill"></div><div id="boss-phase-txt">PHASE 1</div></div>
   </div>
   <canvas id="canvas" width="600" height="400"></canvas>
-  <div id="controls">WASD/ARROWS · MOVE &nbsp;|&nbsp; SPACE · ATTACK &nbsp;|&nbsp; Walk into cracked wall in Ryan's Room!</div>
+  <div id="controls">WASD/ARROWS · MOVE | SPACE · ATTACK | Find cracked walls in Living Room &amp; Ryan's Room!</div>
   <div id="message-box"></div>
 </div>
 
@@ -133,11 +133,15 @@ const COLOURS = {
 const RYANS_ROOM_IDX = 5;
 const SECRET_WALL_COL = 9;
 const SECRET_WALL_ROW = 10;
+const LIVING_ROOM_IDX = 2;
+const BOILER_WALL_COL = 17;
+const BOILER_WALL_ROW = 3;
+const RAT_KING_MAX_HP = 250;
 
 const ROOMS = [
   { name:"FRONT DOOR",   cols:18, rows:11, desc:"Reek of chips and last night's carry-out.", boss:false },
   { name:"HALLWAY",      cols:18, rows:11, desc:"Mouldy carpet. Someone's lost shoe.", boss:false },
-  { name:"LIVING ROOM",  cols:18, rows:11, desc:"Broken IKEA furniture. Dead plants.", boss:false },
+  { name:"LIVING ROOM",  cols:18, rows:11, desc:"Broken IKEA furniture. Dead plants. There's a dripping sound from the wall...", boss:false, boilerWall:true },
   { name:"KITCHEN",      cols:18, rows:11, desc:"Dishes from three weeks ago.", boss:false },
   { name:"BATHROOM",     cols:18, rows:11, desc:"Ye don't want to know.", boss:false },
   { name:"RYAN'S ROOM",  cols:18, rows:11, desc:"Posters everywhere. Empty Boost cans. There's a weird crack in the wall...", boss:false, secretWall:true },
@@ -145,7 +149,8 @@ const ROOMS = [
   { name:"BEN'S ROOM",   cols:18, rows:11, desc:"A foul stench... something stirs in the corner.", boss:true },
 ];
 
-const SECRET_ROOM = { name:"NEBGUIN'S LAIR", cols:14, rows:9, desc:"...it's like lookin in a mirror. An evil mirror.", boss:false, isSecret:true };
+const SECRET_ROOM  = { name:"NEBGUIN'S LAIR",  cols:14, rows:9,  desc:"...it's like lookin in a mirror. An evil mirror.", isSecret:true, secretType:'nebguin' };
+const BOILER_ROOM  = { name:"THE BOILER ROOM",  cols:14, rows:11, desc:"Dark. Hot. Smells of rust and rat. Something massive lurks in here.", isSecret:true, secretType:'boiler' };
 
 const BOSS_MAX_HP = 300;
 const BOSS_PHASES = [
@@ -165,7 +170,10 @@ function makeFlameParticle(x,y,angle,speed){
 function makeRat(x,y){ return { x,y,hp:30,maxHp:30,vx:0,vy:0,dir:1,anim:0,attackCooldown:0,dead:false,moveTimer:0 }; }
 
 function makeRoom(idx){ return buildRoom(ROOMS[idx], idx, false); }
-function makeSecretRoom(){ return buildRoom(SECRET_ROOM, -1, true); }
+function makeSecretRoom(type){
+  if(type==='boiler') return buildRoom(BOILER_ROOM, -1, true);
+  return buildRoom(SECRET_ROOM, -1, true);
+}
 
 function buildRoom(def, idx, isSecret){
   const cols=def.cols, rows=def.rows;
@@ -196,41 +204,53 @@ function buildRoom(def, idx, isSecret){
     secretWallPos={ row:SECRET_WALL_ROW, col:SECRET_WALL_COL, hp:3, broken:false };
   }
 
+  let boilerWallPos=null;
+  if(def.boilerWall){
+    tiles[BOILER_WALL_ROW][BOILER_WALL_COL]=2;
+    boilerWallPos={ row:BOILER_WALL_ROW, col:BOILER_WALL_COL, hp:3, broken:false };
+  }
+
   let secretExit=null;
   if(isSecret){
-    const exitCol=Math.floor(cols/2);
-    tiles[0][exitCol]=3;
-    secretExit={ row:0, col:exitCol };
+    const secretType=def.secretType||'nebguin';
+    if(secretType==='nebguin'){
+      const exitCol=Math.floor(cols/2);
+      tiles[0][exitCol-1]=0; tiles[0][exitCol]=0; tiles[0][exitCol+1]=0;
+      tiles[1][exitCol]=3;
+      secretExit={ col:exitCol, side:'top' };
+    } else {
+      const exitRow=Math.floor(rows/2);
+      tiles[exitRow][0]=0; tiles[exitRow-1][0]=0; tiles[exitRow+1][0]=0;
+      tiles[exitRow][1]=3;
+      secretExit={ row:exitRow, side:'left' };
+    }
   }
 
   let nebguin=null;
-  if(isSecret){
-    nebguin={
-      x:Math.floor(cols/2)*TILE+TILE/2,
-      y:Math.floor(rows/2)*TILE+TILE/2+TILE,
-      hp:NEBGUIN_MAX_HP, maxHp:NEBGUIN_MAX_HP,
-      dir:-1, anim:0, attackCooldown:0,
-      flameCooldown:0, flameTimer:0, flaming:false,
-      dead:false, shakeTimer:0, flames:[],
-    };
+  if(isSecret&&def.secretType==='nebguin'){
+    nebguin={ x:Math.floor(cols/2)*TILE+TILE/2, y:Math.floor(rows/2)*TILE+TILE/2+TILE,
+      hp:NEBGUIN_MAX_HP, maxHp:NEBGUIN_MAX_HP, dir:-1, anim:0, attackCooldown:0,
+      flameCooldown:0, flameTimer:0, flaming:false, dead:false, shakeTimer:0, flames:[] };
+  }
+
+  let ratKing=null;
+  if(isSecret&&def.secretType==='boiler'){
+    ratKing={ x:Math.floor(cols/2)*TILE+TILE/2, y:Math.floor(rows/2)*TILE+TILE/2+TILE,
+      hp:RAT_KING_MAX_HP, maxHp:RAT_KING_MAX_HP, dir:1, anim:0, phase:0,
+      attackCooldown:0, chargeCooldown:100, chargeVx:0, chargeVy:0,
+      charging:false, chargeTimer:0, spawnTimer:180, dead:false, shakeTimer:0 };
   }
 
   let boss=null;
   if(def.boss){
-    boss={
-      x:Math.floor(cols/2)*TILE+TILE/2,
-      y:Math.floor(rows/2)*TILE+TILE/2,
-      hp:BOSS_MAX_HP, maxHp:BOSS_MAX_HP,
-      dir:1, anim:0, phase:0,
-      attackCooldown:0, chargeCooldown:120,
-      chargeVx:0, chargeVy:0,
-      charging:false, chargeTimer:0,
-      spawnTimer:200, dead:false, shakeTimer:0,
-    };
+    boss={ x:Math.floor(cols/2)*TILE+TILE/2, y:Math.floor(rows/2)*TILE+TILE/2,
+      hp:BOSS_MAX_HP, maxHp:BOSS_MAX_HP, dir:1, anim:0, phase:0,
+      attackCooldown:0, chargeCooldown:120, chargeVx:0, chargeVy:0,
+      charging:false, chargeTimer:0, spawnTimer:200, dead:false, shakeTimer:0 };
   }
 
   return { tiles, cols, rows, doorRow, doorCol, doorOpen:false, rats, boss, idx,
-    healthDrops:[], secretWallPos, secretExit, nebguin, isSecret, def };
+    healthDrops:[], secretWallPos, boilerWallPos, secretExit, nebguin, ratKing, isSecret, def };
 }
 
 function startGame(){
@@ -240,16 +260,12 @@ function startGame(){
   document.getElementById('boss-hud').style.display='none';
   cancelAnimationFrame(animFrame);
   const startRoom=makeRoom(0);
-  state={
-    room:startRoom, roomIdx:0,
-    prevRoom:null, prevPlayerX:0, prevPlayerY:0,
+  state={ room:startRoom, roomIdx:0,
+    prevRoom:null, prevPlayerX:0, prevPlayerY:0, prevRoomName:'', prevRoomIdx:0,
     player:{ x:2*TILE+TILE/2, y:Math.floor(startRoom.rows/2)*TILE+TILE/2,
       hp:100,maxHp:100,speed:3,dir:1,anim:0,
-      attackTimer:0,attackCooldown:0,invincible:0,
-      weapon:'mallet', flameAmmo:0,
-    },
-    score:0, keys:{}, particles:[], camX:0, camY:0,
-  };
+      attackTimer:0,attackCooldown:0,invincible:0,weapon:'mallet',flameAmmo:0 },
+    score:0, keys:{}, particles:[], camX:0, camY:0 };
   updateHUD(); updateWeaponIndicator();
   document.getElementById('room-label').textContent=ROOMS[0].name;
   showMessage(ROOMS[0].desc,2500);
@@ -268,10 +284,8 @@ function spawnBonk(x,y,txt='BONK!'){ state.particles.push({x,y,vx:(Math.random()
 
 let msgTimeout;
 function showMessage(txt,dur=1800){ const el=document.getElementById('message-box'); el.textContent=txt; el.style.opacity=1; clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>el.style.opacity=0,dur); }
-
 function updateHUD(){ const p=state.player; document.getElementById('hp-fill').style.width=(p.hp/p.maxHp*100)+'%'; document.getElementById('hp-text').textContent=p.hp; document.getElementById('score').textContent=state.score; }
 function updateWeaponIndicator(){ const p=state.player; const el=document.getElementById('weapon-indicator'); if(p.weapon==='flamethrower')el.textContent='🔥 FLAMETHROWER ('+p.flameAmmo+')'; else el.textContent='🔨 MALLET'; }
-
 function getBossPhase(boss){ const r=boss.hp/boss.maxHp; if(r<=0.33)return 2; if(r<=0.66)return 1; return 0; }
 
 function updateBossHUD(boss,title){
@@ -280,9 +294,12 @@ function updateBossHUD(boss,title){
   if(title) document.getElementById('boss-hud-title').textContent=title;
   document.getElementById('boss-hp-fill').style.width=(boss.hp/boss.maxHp*100)+'%';
   const ph=getBossPhase(boss);
-  document.getElementById('boss-phase-txt').textContent=boss.maxHp===BOSS_MAX_HP?BOSS_PHASES[ph].label:'NEBGUIN HP';
+  const isPatches=boss.maxHp===BOSS_MAX_HP;
+  document.getElementById('boss-phase-txt').textContent=isPatches?BOSS_PHASES[ph].label:(boss.maxHp===RAT_KING_MAX_HP?'RAT KING HP':'NEBGUIN HP');
   const cols=['linear-gradient(90deg,#7a0010,#e63946)','linear-gradient(90deg,#7a0010,#cc2222)','linear-gradient(90deg,#550000,#ff2222)'];
-  document.getElementById('boss-hp-fill').style.background=boss.maxHp===BOSS_MAX_HP?cols[ph]:'linear-gradient(90deg,#002244,#0066ff)';
+  if(boss.maxHp===NEBGUIN_MAX_HP) document.getElementById('boss-hp-fill').style.background='linear-gradient(90deg,#002244,#0066ff)';
+  else if(boss.maxHp===RAT_KING_MAX_HP) document.getElementById('boss-hp-fill').style.background='linear-gradient(90deg,#330000,#aa0000)';
+  else document.getElementById('boss-hp-fill').style.background=cols[ph];
 }
 
 function updateCamera(){ const tx=state.player.x-W/2,ty=state.player.y-H/2,maxX=state.room.cols*TILE-W,maxY=state.room.rows*TILE-H; state.camX+=(Math.max(0,Math.min(maxX,tx))-state.camX)*0.15; state.camY+=(Math.max(0,Math.min(maxY,ty))-state.camY)*0.15; }
@@ -302,6 +319,17 @@ function triggerIntro(titleTxt,subTxt,cb){
 function loop(ts=0){ const dt=Math.min((ts-lastTime)/16.67,3); lastTime=ts; update(dt); draw(); animFrame=requestAnimationFrame(loop); }
 function playerDie(){ cancelAnimationFrame(animFrame); setTimeout(()=>document.getElementById('game-over-screen').style.display='flex',400); }
 
+function exitSecretRoom(){
+  const player=state.player;
+  state.room=state.prevRoom;
+  state.roomIdx=state.prevRoomIdx||RYANS_ROOM_IDX;
+  player.x=state.prevPlayerX; player.y=state.prevPlayerY-30;
+  state.camX=0; state.camY=0;
+  document.getElementById('room-label').textContent=state.prevRoomName||"RYAN'S ROOM";
+  updateBossHUD(null);
+  showMessage('Back in '+(state.prevRoomName||"Ryan's Room")+'...',1800);
+}
+
 function update(dt){
   const{player,room,keys}=state;
 
@@ -313,59 +341,67 @@ function update(dt){
   if(dx||dy){ const l=Math.sqrt(dx*dx+dy*dy); dx=dx/l*player.speed; dy=dy/l*player.speed; if(dx)player.dir=dx>0?1:-1; player.anim+=dt; }
   moveEntity(room,player,dx*dt,dy*dt,10);
 
-  // Secret wall breaking
+  // Ryan's room secret wall
   if(room.secretWallPos&&!room.secretWallPos.broken){
     const sw=room.secretWallPos;
     const wallX=sw.col*TILE+TILE/2, wallY=sw.row*TILE+TILE/2;
     if(Math.hypot(player.x-wallX,player.y-wallY)<28){
-      sw.hp--;
-      spawnParticles(wallX,wallY,'#c0622a',5);
-      if(sw.hp<=0){
-        sw.broken=true;
-        room.tiles[sw.row][sw.col]=0;
-        spawnParticles(wallX,wallY,'#c0622a',25);
-        showMessage('SECRET PASSAGE! 👀',2500);
-      }
+      sw.hp--; spawnParticles(wallX,wallY,'#c0622a',5);
+      if(sw.hp<=0){ sw.broken=true; room.tiles[sw.row][sw.col]=0; spawnParticles(wallX,wallY,'#c0622a',25); showMessage('SECRET PASSAGE! 👀',2500); }
     }
   }
 
-  // Secret exit (top of secret room)
+  // Living room boiler wall
+  if(room.boilerWallPos&&!room.boilerWallPos.broken){
+    const bw=room.boilerWallPos;
+    const wallX=bw.col*TILE+TILE/2, wallY=bw.row*TILE+TILE/2;
+    if(Math.hypot(player.x-wallX,player.y-wallY)<28){
+      bw.hp--; spawnParticles(wallX,wallY,'#884400',5);
+      if(bw.hp<=0){ bw.broken=true; room.tiles[bw.row][bw.col]=0; spawnParticles(wallX,wallY,'#884400',25); showMessage('THE BOILER ROOM... 🔥',2500); }
+    }
+  }
+
+  // Secret exit handler
   if(room.isSecret&&room.secretExit){
     const ex=room.secretExit;
-    const exitX=ex.col*TILE+TILE/2;
-    if(Math.abs(player.x-exitX)<TILE&&player.y<TILE*1.5){
-      state.room=state.prevRoom;
-      state.roomIdx=RYANS_ROOM_IDX;
-      player.x=state.prevPlayerX; player.y=state.prevPlayerY;
-      state.camX=0; state.camY=0;
-      document.getElementById('room-label').textContent="RYAN'S ROOM";
-      updateBossHUD(null);
-      showMessage("Back in Ryan's room...",1800);
-      return;
+    if(ex.side==='top'){
+      const exitX=ex.col*TILE+TILE/2;
+      if(Math.abs(player.x-exitX)<TILE*1.5&&player.y<TILE*2.5){ exitSecretRoom(); return; }
+    } else if(ex.side==='left'){
+      const exitY=ex.row*TILE+TILE/2;
+      if(player.x<TILE*2.5&&Math.abs(player.y-exitY)<TILE*1.5){ exitSecretRoom(); return; }
     }
   }
 
-  // Enter secret passage
+  // Enter Nebguin's lair
   if(room.secretWallPos&&room.secretWallPos.broken&&!room.isSecret){
     const sw=room.secretWallPos;
-    const wallX=sw.col*TILE+TILE/2, wallY=sw.row*TILE;
-    if(Math.hypot(player.x-wallX,player.y-wallY)<20){
-      state.prevRoom=room;
-      state.prevPlayerX=player.x;
-      state.prevPlayerY=player.y;
-      const secretRoom=makeSecretRoom();
-      state.room=secretRoom;
-      player.x=Math.floor(secretRoom.cols/2)*TILE+TILE/2;
-      player.y=(secretRoom.rows-2)*TILE;
+    const wallX=sw.col*TILE+TILE/2, wallY=sw.row*TILE+TILE/2;
+    if(Math.hypot(player.x-wallX,player.y-wallY)<28){
+      state.prevRoom=room; state.prevPlayerX=player.x; state.prevPlayerY=player.y;
+      state.prevRoomName="RYAN'S ROOM"; state.prevRoomIdx=RYANS_ROOM_IDX;
+      const sr=makeSecretRoom('nebguin'); state.room=sr;
+      player.x=Math.floor(sr.cols/2)*TILE+TILE/2; player.y=(sr.rows-2)*TILE;
       state.camX=0; state.camY=0;
       document.getElementById('room-label').textContent="NEBGUIN'S LAIR";
-      if(secretRoom.nebguin&&!secretRoom.nebguin.dead){
-        triggerIntro("⚠ NEBGUIN ⚠","EVIL BENGUIN FROM THE MIRROR DIMENSION\nHE HAS A FLAMETHROWER",()=>{
-          updateBossHUD(state.room.nebguin,"⚠ NEBGUIN THE EVIL ⚠");
-        });
-      }
-      showMessage(SECRET_ROOM.desc,3000);
-      return;
+      if(sr.nebguin&&!sr.nebguin.dead){ triggerIntro("⚠ NEBGUIN ⚠","EVIL BENGUIN FROM THE MIRROR DIMENSION\nHE HAS A FLAMETHROWER",()=>{ updateBossHUD(state.room.nebguin,"⚠ NEBGUIN THE EVIL ⚠"); }); }
+      showMessage(SECRET_ROOM.desc,3000); return;
+    }
+  }
+
+  // Enter Boiler Room
+  if(room.boilerWallPos&&room.boilerWallPos.broken&&!room.isSecret){
+    const bw=room.boilerWallPos;
+    const wallX=bw.col*TILE+TILE/2, wallY=bw.row*TILE+TILE/2;
+    if(Math.hypot(player.x-wallX,player.y-wallY)<28){
+      state.prevRoom=room; state.prevPlayerX=player.x; state.prevPlayerY=player.y;
+      state.prevRoomName="LIVING ROOM"; state.prevRoomIdx=LIVING_ROOM_IDX;
+      const br=makeSecretRoom('boiler'); state.room=br;
+      player.x=(br.cols-2)*TILE; player.y=Math.floor(br.rows/2)*TILE+TILE/2;
+      state.camX=0; state.camY=0;
+      document.getElementById('room-label').textContent="THE BOILER ROOM";
+      triggerIntro("👑 RAT KING 👑","LORD OF THE HOLYLANDS SEWERS\nHE DWELLS IN THE BOILER ROOM",()=>{ updateBossHUD(state.room.ratKing,"👑 THE RAT KING 👑"); });
+      showMessage(BOILER_ROOM.desc,3000); return;
     }
   }
 
@@ -374,9 +410,7 @@ function update(dt){
 
   if((keys['Space']||keys['KeyZ'])&&player.attackCooldown<=0){
     if(player.weapon==='flamethrower'&&player.flameAmmo>0){
-      player.attackCooldown=4;
-      player.flameAmmo--;
-      updateWeaponIndicator();
+      player.attackCooldown=4; player.flameAmmo--; updateWeaponIndicator();
       const fireAngle=player.dir>0?0:Math.PI;
       for(let i=0;i<4;i++){
         const a=fireAngle+(Math.random()-0.5)*0.5;
@@ -389,198 +423,116 @@ function update(dt){
     } else {
       player.attackTimer=8; player.attackCooldown=20;
     }
-
     if(player.weapon==='mallet'){
       room.rats.forEach(rat=>{
         if(rat.dead)return;
-        if(Math.hypot(rat.x-player.x,rat.y-player.y)<55){
-          rat.hp-=20; spawnParticles(rat.x,rat.y,COLOURS.blood,8); spawnBonk(rat.x,rat.y-16);
-          if(rat.hp<=0) killRat(rat,room);
-        }
+        if(Math.hypot(rat.x-player.x,rat.y-player.y)<55){ rat.hp-=20; spawnParticles(rat.x,rat.y,COLOURS.blood,8); spawnBonk(rat.x,rat.y-16); if(rat.hp<=0) killRat(rat,room); }
       });
       if(room.boss&&!room.boss.dead){
         const boss=room.boss;
-        if(Math.hypot(boss.x-player.x,boss.y-player.y)<72){
-          boss.hp=Math.max(0,boss.hp-20); boss.shakeTimer=14;
-          spawnParticles(boss.x,boss.y,COLOURS.blood,14); spawnBonk(boss.x,boss.y-40,'BONK! 20');
-          updateBossHUD(boss,"🐹 PATCHES THE HAMSTER 👑");
-          if(boss.hp<=0){ boss.dead=true; state.score+=1000; updateHUD(); spawnParticles(boss.x,boss.y,'#ffd700',50); spawnBonk(boss.x,boss.y-50,'DEFEATED!!!'); showMessage('PATCHES IS DONE! +1000 SCORE!',3500); }
-        }
+        if(Math.hypot(boss.x-player.x,boss.y-player.y)<72){ boss.hp=Math.max(0,boss.hp-20); boss.shakeTimer=14; spawnParticles(boss.x,boss.y,COLOURS.blood,14); spawnBonk(boss.x,boss.y-40,'BONK! 20'); updateBossHUD(boss,"🐹 PATCHES THE HAMSTER 👑"); if(boss.hp<=0){ boss.dead=true; state.score+=1000; updateHUD(); spawnParticles(boss.x,boss.y,'#ffd700',50); spawnBonk(boss.x,boss.y-50,'DEFEATED!!!'); showMessage('PATCHES IS DONE! +1000 SCORE!',3500); } }
       }
       if(room.nebguin&&!room.nebguin.dead){
         const nb=room.nebguin;
-        if(Math.hypot(nb.x-player.x,nb.y-player.y)<65){
-          nb.hp=Math.max(0,nb.hp-20); nb.shakeTimer=12;
-          spawnParticles(nb.x,nb.y,COLOURS.blood,12); spawnBonk(nb.x,nb.y-36,'BONK! 20');
-          updateBossHUD(nb,"⚠ NEBGUIN THE EVIL ⚠");
-          if(nb.hp<=0) killNebguin(nb,room);
-        }
+        if(Math.hypot(nb.x-player.x,nb.y-player.y)<65){ nb.hp=Math.max(0,nb.hp-20); nb.shakeTimer=12; spawnParticles(nb.x,nb.y,COLOURS.blood,12); spawnBonk(nb.x,nb.y-36,'BONK! 20'); updateBossHUD(nb,"⚠ NEBGUIN THE EVIL ⚠"); if(nb.hp<=0) killNebguin(nb,room); }
+      }
+      if(room.ratKing&&!room.ratKing.dead){
+        const rk=room.ratKing;
+        if(Math.hypot(rk.x-player.x,rk.y-player.y)<72){ rk.hp=Math.max(0,rk.hp-20); rk.shakeTimer=14; spawnParticles(rk.x,rk.y,COLOURS.blood,14); spawnBonk(rk.x,rk.y-48,'BONK! 20'); updateBossHUD(rk,"👑 THE RAT KING 👑"); if(rk.hp<=0) killRatKing(rk,room); }
       }
     }
   }
 
-  // Fire particles hit enemies
   state.particles.forEach(p=>{
     if(!p.isFire) return;
     room.rats.forEach(rat=>{ if(rat.dead)return; if(Math.hypot(rat.x-p.x,rat.y-p.y)<18){ rat.hp-=2; p.life=0; if(rat.hp<=0)killRat(rat,room); } });
     if(room.boss&&!room.boss.dead&&Math.hypot(room.boss.x-p.x,room.boss.y-p.y)<36){ room.boss.hp=Math.max(0,room.boss.hp-1); p.life=0; updateBossHUD(room.boss,"🐹 PATCHES THE HAMSTER 👑"); if(room.boss.hp<=0){ room.boss.dead=true; state.score+=1000; updateHUD(); spawnParticles(room.boss.x,room.boss.y,'#ffd700',50); showMessage('PATCHES IS DONE! +1000 SCORE!',3500); } }
-    if(room.nebguin&&!room.nebguin.dead&&Math.hypot(room.nebguin.x-p.x,room.nebguin.y-p.y)<28){ room.nebguin.hp=Math.max(0,room.nebguin.hp-1); p.life=0; updateBossHUD(room.nebguin,"⚠ NEBGUIN THE EVIL ⚠"); if(room.nebguin.hp<=0)killNebguin(room.nebguin,room); }
+    if(room.nebguin&&!room.nebguin.dead&&Math.hypot(room.nebguin.x-p.x,room.nebguin.y-p.y)<28){ room.nebguin.hp=Math.max(0,room.nebguin.hp-1); p.life=0; updateBossHUD(room.nebguin,"⚠ NEBGUIN THE EVIL ⚠"); if(room.nebguin.hp<=0) killNebguin(room.nebguin,room); }
+    if(room.ratKing&&!room.ratKing.dead&&Math.hypot(room.ratKing.x-p.x,room.ratKing.y-p.y)<36){ room.ratKing.hp=Math.max(0,room.ratKing.hp-1); p.life=0; updateBossHUD(room.ratKing,"👑 THE RAT KING 👑"); if(room.ratKing.hp<=0) killRatKing(room.ratKing,room); }
   });
 
   if(player.invincible>0) player.invincible-=dt;
 
-  // Nebguin flames hit player
   if(room.nebguin&&!room.nebguin.dead){
-    room.nebguin.flames.forEach(f=>{
-      if(Math.hypot(f.x-player.x,f.y-player.y)<16&&player.invincible<=0){
-        player.hp=Math.max(0,player.hp-2); player.invincible=8;
-        updateHUD(); if(player.hp<=0)playerDie();
-      }
-    });
+    room.nebguin.flames.forEach(f=>{ if(Math.hypot(f.x-player.x,f.y-player.y)<16&&player.invincible<=0){ player.hp=Math.max(0,player.hp-2); player.invincible=8; updateHUD(); if(player.hp<=0)playerDie(); } });
   }
 
-  // Rat AI
   room.rats.forEach(rat=>{
     if(rat.dead)return;
     rat.anim+=dt; rat.moveTimer-=dt;
     const dist=Math.hypot(player.x-rat.x,player.y-rat.y);
     if(dist<140){
-      const a=Math.atan2(player.y-rat.y,player.x-rat.x);
-      const rdx=Math.cos(a)*1.2*dt, rdy=Math.sin(a)*1.2*dt;
+      const a=Math.atan2(player.y-rat.y,player.x-rat.x); const rdx=Math.cos(a)*1.2*dt,rdy=Math.sin(a)*1.2*dt;
       rat.dir=rdx>0?1:-1; moveEntity(room,rat,rdx,rdy,8);
       if(rat.attackCooldown>0) rat.attackCooldown-=dt;
-      if(dist<22&&rat.attackCooldown<=0&&player.invincible<=0){
-        player.hp=Math.max(0,player.hp-10); player.invincible=40; rat.attackCooldown=60;
-        spawnParticles(player.x,player.y,'#ff8800',6); updateHUD(); if(player.hp<=0)playerDie();
-      }
+      if(dist<22&&rat.attackCooldown<=0&&player.invincible<=0){ player.hp=Math.max(0,player.hp-10); player.invincible=40; rat.attackCooldown=60; spawnParticles(player.x,player.y,'#ff8800',6); updateHUD(); if(player.hp<=0)playerDie(); }
     } else {
       if(rat.moveTimer<=0){ rat.moveTimer=40+Math.random()*60; const a=Math.random()*Math.PI*2; rat.vx=Math.cos(a)*0.8; rat.vy=Math.sin(a)*0.8; }
       rat.dir=rat.vx>0?1:-1; moveEntity(room,rat,rat.vx*dt,rat.vy*dt,8);
     }
   });
 
-  // Patches boss AI
   if(room.boss&&!room.boss.dead){
     const boss=room.boss; boss.anim+=dt; if(boss.shakeTimer>0)boss.shakeTimer-=dt;
     const newPhase=getBossPhase(boss);
-    if(newPhase!==boss.phase){
-      boss.phase=newPhase; spawnParticles(boss.x,boss.y,'#ffd700',30);
-      const msgs=['','PATCHES IS RAGIN\'! PHASE 2!','PATCHES GOES FULL MAD! PHASE 3!!!'];
-      showMessage(msgs[newPhase],2800); spawnBonk(boss.x,boss.y-55,newPhase===1?'RAGIN\'!':'PURE MAD!!!');
-    }
+    if(newPhase!==boss.phase){ boss.phase=newPhase; spawnParticles(boss.x,boss.y,'#ffd700',30); const msgs=['','PATCHES IS RAGIN\'! PHASE 2!','PATCHES GOES FULL MAD! PHASE 3!!!']; showMessage(msgs[newPhase],2800); spawnBonk(boss.x,boss.y-55,newPhase===1?'RAGIN\'!':'PURE MAD!!!'); }
     const phData=BOSS_PHASES[boss.phase];
-    boss.spawnTimer-=dt;
-    if(boss.spawnTimer<=0){
-      boss.spawnTimer=phData.spawnRate;
-      for(let i=0;i<boss.phase+1;i++){
-        const a=Math.random()*Math.PI*2,d=45+Math.random()*25;
-        const rx=boss.x+Math.cos(a)*d,ry=boss.y+Math.sin(a)*d;
-        if(!collidesWall(room,rx,ry,8)) room.rats.push(makeRat(rx,ry));
-      }
-    }
+    boss.spawnTimer-=dt; if(boss.spawnTimer<=0){ boss.spawnTimer=phData.spawnRate; for(let i=0;i<boss.phase+1;i++){ const a=Math.random()*Math.PI*2,d=45+Math.random()*25; const rx=boss.x+Math.cos(a)*d,ry=boss.y+Math.sin(a)*d; if(!collidesWall(room,rx,ry,8))room.rats.push(makeRat(rx,ry)); } }
     boss.chargeCooldown-=dt;
-    if(!boss.charging&&boss.chargeCooldown<=0){
-      boss.charging=true; boss.chargeTimer=28;
-      const a=Math.atan2(player.y-boss.y,player.x-boss.x);
-      boss.chargeVx=Math.cos(a)*phData.speed*5; boss.chargeVy=Math.sin(a)*phData.speed*5;
-      boss.chargeCooldown=100+Math.random()*80; spawnBonk(boss.x,boss.y-55,'CHARGE!!!');
-    }
-    if(boss.charging){
-      boss.chargeTimer-=dt; boss.dir=boss.chargeVx>0?1:-1;
-      moveEntity(room,boss,boss.chargeVx*dt,boss.chargeVy*dt,18);
-      boss.chargeVx*=0.93; boss.chargeVy*=0.93;
-      if(boss.chargeTimer<=0) boss.charging=false;
-      if(Math.hypot(boss.x-player.x,boss.y-player.y)<30&&player.invincible<=0){
-        player.hp=Math.max(0,player.hp-25); player.invincible=70;
-        spawnParticles(player.x,player.y,'#ff0000',18); updateHUD(); if(player.hp<=0)playerDie();
-      }
-    } else {
-      const a=Math.atan2(player.y-boss.y,player.x-boss.x); boss.dir=Math.cos(a)>0?1:-1;
-      moveEntity(room,boss,Math.cos(a)*phData.speed*dt,Math.sin(a)*phData.speed*dt,18);
-      if(boss.attackCooldown>0)boss.attackCooldown-=dt;
-      if(Math.hypot(boss.x-player.x,boss.y-player.y)<34&&boss.attackCooldown<=0&&player.invincible<=0){
-        player.hp=Math.max(0,player.hp-15); player.invincible=55; boss.attackCooldown=75;
-        spawnParticles(player.x,player.y,'#ff4400',10); updateHUD(); if(player.hp<=0)playerDie();
-      }
-    }
+    if(!boss.charging&&boss.chargeCooldown<=0){ boss.charging=true; boss.chargeTimer=28; const a=Math.atan2(player.y-boss.y,player.x-boss.x); boss.chargeVx=Math.cos(a)*phData.speed*5; boss.chargeVy=Math.sin(a)*phData.speed*5; boss.chargeCooldown=100+Math.random()*80; spawnBonk(boss.x,boss.y-55,'CHARGE!!!'); }
+    if(boss.charging){ boss.chargeTimer-=dt; boss.dir=boss.chargeVx>0?1:-1; moveEntity(room,boss,boss.chargeVx*dt,boss.chargeVy*dt,18); boss.chargeVx*=0.93; boss.chargeVy*=0.93; if(boss.chargeTimer<=0)boss.charging=false; if(Math.hypot(boss.x-player.x,boss.y-player.y)<30&&player.invincible<=0){ player.hp=Math.max(0,player.hp-25); player.invincible=70; spawnParticles(player.x,player.y,'#ff0000',18); updateHUD(); if(player.hp<=0)playerDie(); }
+    } else { const a=Math.atan2(player.y-boss.y,player.x-boss.x); boss.dir=Math.cos(a)>0?1:-1; moveEntity(room,boss,Math.cos(a)*phData.speed*dt,Math.sin(a)*phData.speed*dt,18); if(boss.attackCooldown>0)boss.attackCooldown-=dt; if(Math.hypot(boss.x-player.x,boss.y-player.y)<34&&boss.attackCooldown<=0&&player.invincible<=0){ player.hp=Math.max(0,player.hp-15); player.invincible=55; boss.attackCooldown=75; spawnParticles(player.x,player.y,'#ff4400',10); updateHUD(); if(player.hp<=0)playerDie(); } }
     updateBossHUD(boss,"🐹 PATCHES THE HAMSTER 👑");
   }
 
-  // Nebguin AI
   if(room.nebguin&&!room.nebguin.dead){
     const nb=room.nebguin; nb.anim+=dt; if(nb.shakeTimer>0)nb.shakeTimer-=dt;
     const distToPlayer=Math.hypot(player.x-nb.x,player.y-nb.y);
-    const a=Math.atan2(player.y-nb.y,player.x-nb.x);
-    nb.dir=Math.cos(a)>0?1:-1;
+    const a=Math.atan2(player.y-nb.y,player.x-nb.x); nb.dir=Math.cos(a)>0?1:-1;
     if(distToPlayer>60) moveEntity(room,nb,Math.cos(a)*1.8*dt,Math.sin(a)*1.8*dt,16);
     nb.flameCooldown-=dt;
     if(!nb.flaming&&nb.flameCooldown<=0&&distToPlayer<160){ nb.flaming=true; nb.flameTimer=60; nb.flameCooldown=120+Math.random()*80; }
-    if(nb.flaming){
-      nb.flameTimer-=dt;
-      if(nb.flameTimer<=0) nb.flaming=false;
-      const fa=Math.atan2(player.y-nb.y,player.x-nb.x);
-      for(let i=0;i<3;i++){
-        const fangle=fa+(Math.random()-0.5)*0.4;
-        nb.flames.push(makeFlameParticle(nb.x+nb.dir*16,nb.y-4,fangle,4.5));
-      }
-    }
+    if(nb.flaming){ nb.flameTimer-=dt; if(nb.flameTimer<=0)nb.flaming=false; const fa=Math.atan2(player.y-nb.y,player.x-nb.x); for(let i=0;i<3;i++){ nb.flames.push(makeFlameParticle(nb.x+nb.dir*16,nb.y-4,fa+(Math.random()-0.5)*0.4,4.5)); } }
     nb.flames=nb.flames.filter(f=>f.life>0);
     nb.flames.forEach(f=>{ f.x+=f.vx; f.y+=f.vy; f.vx*=0.95; f.vy*=0.95; f.life-=dt*1.2; if(tileAt(room,f.x,f.y)===1)f.life=0; });
     if(nb.attackCooldown>0)nb.attackCooldown-=dt;
-    if(distToPlayer<30&&nb.attackCooldown<=0&&player.invincible<=0){
-      player.hp=Math.max(0,player.hp-12); player.invincible=45; nb.attackCooldown=65;
-      spawnParticles(player.x,player.y,'#ff4400',8); updateHUD(); if(player.hp<=0)playerDie();
-    }
+    if(distToPlayer<30&&nb.attackCooldown<=0&&player.invincible<=0){ player.hp=Math.max(0,player.hp-12); player.invincible=45; nb.attackCooldown=65; spawnParticles(player.x,player.y,'#ff4400',8); updateHUD(); if(player.hp<=0)playerDie(); }
     updateBossHUD(nb,"⚠ NEBGUIN THE EVIL ⚠");
   }
 
-  // Door / advance
+  if(room.ratKing&&!room.ratKing.dead){
+    const rk=room.ratKing; rk.anim+=dt; if(rk.shakeTimer>0)rk.shakeTimer-=dt;
+    const newPhase=getBossPhase(rk);
+    if(newPhase!==rk.phase){ rk.phase=newPhase; spawnParticles(rk.x,rk.y,'#880000',30); const msgs=['','THE RAT KING ENRAGES!','THE RAT KING GOES BERSERK!!!']; showMessage(msgs[newPhase],2800); spawnBonk(rk.x,rk.y-55,newPhase===1?'ENRAGED!':'BERSERK!!!'); }
+    const rkSpeed=[1.6,2.2,3.0][rk.phase];
+    rk.spawnTimer-=dt; if(rk.spawnTimer<=0){ rk.spawnTimer=[180,120,70][rk.phase]; for(let i=0;i<rk.phase+1;i++){ const a=Math.random()*Math.PI*2,d=40+Math.random()*30; const rx=rk.x+Math.cos(a)*d,ry=rk.y+Math.sin(a)*d; if(!collidesWall(room,rx,ry,8))room.rats.push(makeRat(rx,ry)); } spawnParticles(rk.x,rk.y,'#550000',10); }
+    rk.chargeCooldown-=dt;
+    if(!rk.charging&&rk.chargeCooldown<=0){ rk.charging=true; rk.chargeTimer=30; const a=Math.atan2(player.y-rk.y,player.x-rk.x); rk.chargeVx=Math.cos(a)*rkSpeed*5; rk.chargeVy=Math.sin(a)*rkSpeed*5; rk.chargeCooldown=90+Math.random()*70; spawnBonk(rk.x,rk.y-55,'CHARGE!!!'); }
+    if(rk.charging){ rk.chargeTimer-=dt; rk.dir=rk.chargeVx>0?1:-1; moveEntity(room,rk,rk.chargeVx*dt,rk.chargeVy*dt,20); rk.chargeVx*=0.93; rk.chargeVy*=0.93; if(rk.chargeTimer<=0)rk.charging=false; if(Math.hypot(rk.x-player.x,rk.y-player.y)<32&&player.invincible<=0){ player.hp=Math.max(0,player.hp-22); player.invincible=65; spawnParticles(player.x,player.y,'#ff0000',15); updateHUD(); if(player.hp<=0)playerDie(); }
+    } else { const a=Math.atan2(player.y-rk.y,player.x-rk.x); rk.dir=Math.cos(a)>0?1:-1; moveEntity(room,rk,Math.cos(a)*rkSpeed*dt,Math.sin(a)*rkSpeed*dt,20); if(rk.attackCooldown>0)rk.attackCooldown-=dt; if(Math.hypot(rk.x-player.x,rk.y-player.y)<36&&rk.attackCooldown<=0&&player.invincible<=0){ player.hp=Math.max(0,player.hp-18); player.invincible=50; rk.attackCooldown=70; spawnParticles(player.x,player.y,'#ff2200',12); updateHUD(); if(player.hp<=0)playerDie(); } }
+    updateBossHUD(rk,"👑 THE RAT KING 👑");
+  }
+
   const allRatsDead=room.rats.every(r=>r.dead);
   const bossDone=!room.boss||room.boss.dead;
   const nebDone=!room.nebguin||room.nebguin.dead;
-  if(allRatsDead&&bossDone&&nebDone&&!room.doorOpen&&!room.isSecret){
-    room.doorOpen=true;
-    showMessage(room.boss?'PATCHES DEFEATED! Move right!':'DOOR OPEN — move right to advance!',2500);
-  }
-  if(room.isSecret&&allRatsDead&&nebDone&&!room.doorOpen){ room.doorOpen=true; showMessage('NEBGUIN DEFEATED! Walk up to exit.',2500); }
-  if(room.doorOpen&&!room.isSecret){
-    const doorX=room.doorCol*TILE,doorY=room.doorRow*TILE+TILE/2;
-    if(player.x>doorX-8&&Math.abs(player.y-doorY)<TILE) advanceRoom();
-  }
+  const rkDone=!room.ratKing||room.ratKing.dead;
+  if(allRatsDead&&bossDone&&nebDone&&rkDone&&!room.doorOpen&&!room.isSecret){ room.doorOpen=true; showMessage(room.boss?'PATCHES DEFEATED! Move right!':'DOOR OPEN — move right to advance!',2500); }
+  if(room.isSecret&&allRatsDead&&nebDone&&rkDone&&!room.doorOpen){ room.doorOpen=true; showMessage(room.def.secretType==='boiler'?'RAT KING SLAIN! Walk left to exit.':'NEBGUIN DEFEATED! Walk up to exit.',2500); }
+  if(room.doorOpen&&!room.isSecret){ const doorX=room.doorCol*TILE,doorY=room.doorRow*TILE+TILE/2; if(player.x>doorX-8&&Math.abs(player.y-doorY)<TILE) advanceRoom(); }
 
-  // Banana pickups
-  room.healthDrops=room.healthDrops.filter(drop=>{
-    drop.anim+=dt;
-    if(Math.hypot(player.x-drop.x,player.y-drop.y)<18){
-      player.hp=Math.min(player.maxHp,player.hp+30); updateHUD();
-      spawnBonk(drop.x,drop.y-12,'+30 HP! 🍌');
-      spawnParticles(drop.x,drop.y,'#ffe033',12); return false;
-    }
-    return true;
-  });
+  room.healthDrops=room.healthDrops.filter(drop=>{ drop.anim+=dt; if(Math.hypot(player.x-drop.x,player.y-drop.y)<18){ player.hp=Math.min(player.maxHp,player.hp+30); updateHUD(); spawnBonk(drop.x,drop.y-12,'+30 HP! 🍌'); spawnParticles(drop.x,drop.y,'#ffe033',12); return false; } return true; });
 
   state.particles=state.particles.filter(p=>p.life>0);
   state.particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vx*=0.92; p.vy*=0.92; p.life-=dt*1.5; });
   updateCamera();
 }
 
-function killRat(rat,room){
-  rat.dead=true; state.score+=100; updateHUD();
-  spawnParticles(rat.x,rat.y,COLOURS.blood,20);
-  if(Math.random()<0.1) room.healthDrops.push({x:rat.x,y:rat.y,anim:0});
-}
+function killRat(rat,room){ rat.dead=true; state.score+=100; updateHUD(); spawnParticles(rat.x,rat.y,COLOURS.blood,20); if(Math.random()<0.1) room.healthDrops.push({x:rat.x,y:rat.y,anim:0}); }
 
-function killNebguin(nb,room){
-  nb.dead=true; state.score+=500; updateHUD();
-  spawnParticles(nb.x,nb.y,'#0088ff',40);
-  spawnParticles(nb.x,nb.y,'#ff8800',40);
-  spawnBonk(nb.x,nb.y-50,'NEBGUIN DOWN! +500');
-  showMessage('NEBGUIN DEFEATED! FLAMETHROWER ACQUIRED! 🔥',4000);
-  state.player.weapon='flamethrower';
-  state.player.flameAmmo=120;
-  updateWeaponIndicator();
-  room.doorOpen=true;
-}
+function killNebguin(nb,room){ nb.dead=true; state.score+=500; updateHUD(); spawnParticles(nb.x,nb.y,'#0088ff',40); spawnParticles(nb.x,nb.y,'#ff8800',40); spawnBonk(nb.x,nb.y-50,'NEBGUIN DOWN! +500'); showMessage('NEBGUIN DEFEATED! FLAMETHROWER ACQUIRED! 🔥',4000); state.player.weapon='flamethrower'; state.player.flameAmmo=120; updateWeaponIndicator(); room.doorOpen=true; }
+
+function killRatKing(rk,room){ rk.dead=true; state.score+=750; updateHUD(); spawnParticles(rk.x,rk.y,'#ffd700',50); spawnParticles(rk.x,rk.y,COLOURS.blood,50); spawnBonk(rk.x,rk.y-55,'RAT KING SLAIN! +750'); showMessage('THE RAT KING IS DEAD! +750 SCORE! Walk left to exit.',4000); room.doorOpen=true; }
 
 function advanceRoom(){
   const nextIdx=state.roomIdx+1;
@@ -600,7 +552,6 @@ function loadRoom(nextIdx){
   updateBossHUD(room.boss,room.boss?"🐹 PATCHES THE HAMSTER 👑":null);
 }
 
-// ── DRAW BENGUIN / NEBGUIN
 function drawBenguin(x,y,dir,anim,attacking,invincible,isEvil=false,flaming=false){
   ctx.save(); ctx.translate(x,y); if(dir<0)ctx.scale(-1,1);
   if(invincible>0&&Math.floor(Date.now()/80)%2===0){ ctx.restore(); return; }
@@ -621,33 +572,19 @@ function drawBenguin(x,y,dir,anim,attacking,invincible,isEvil=false,flaming=fals
   ctx.fillStyle='#e8a020'; ctx.fillRect(-3,-12+bob,6,5);
   ctx.fillStyle='#333'; ctx.fillRect(-13,-22+bob,4,8); ctx.fillRect(9,-22+bob,4,8); ctx.fillRect(-11,-24+bob,22,3);
   ctx.fillStyle='#e8a020'; ctx.fillRect(-9,18+bob,8,5); ctx.fillRect(1,18+bob,8,5);
-
   if(isEvil){
     ctx.save(); ctx.translate(14,-2+bob);
-    ctx.fillStyle='#334455'; ctx.fillRect(0,-8,10,20);
-    ctx.fillStyle='#445566'; ctx.fillRect(1,-7,8,5);
-    ctx.fillStyle='#cc2200'; ctx.fillRect(0,4,10,4);
-    ctx.fillStyle='#222'; ctx.fillRect(8,-3,18,5);
-    ctx.fillStyle='#444'; ctx.fillRect(8,-3,3,5);
-    ctx.fillStyle='#111'; ctx.fillRect(24,-4,5,7);
-    if(flaming){
-      ctx.globalAlpha=0.7+Math.sin(Date.now()*0.1)*0.3;
-      for(let i=0;i<4;i++){ ctx.fillStyle=['#ff8800','#ff4400','#ffcc00'][i%3]; ctx.beginPath(); ctx.ellipse(32+i*5,(Math.random()-0.5)*4,4+Math.random()*4,3,0,0,Math.PI*2); ctx.fill(); }
-      ctx.globalAlpha=1;
-    }
+    ctx.fillStyle='#334455'; ctx.fillRect(0,-8,10,20); ctx.fillStyle='#445566'; ctx.fillRect(1,-7,8,5); ctx.fillStyle='#cc2200'; ctx.fillRect(0,4,10,4);
+    ctx.fillStyle='#222'; ctx.fillRect(8,-3,18,5); ctx.fillStyle='#444'; ctx.fillRect(8,-3,3,5); ctx.fillStyle='#111'; ctx.fillRect(24,-4,5,7);
+    if(flaming){ ctx.globalAlpha=0.7+Math.sin(Date.now()*0.1)*0.3; for(let i=0;i<4;i++){ ctx.fillStyle=['#ff8800','#ff4400','#ffcc00'][i%3]; ctx.beginPath(); ctx.ellipse(32+i*5,(Math.random()-0.5)*4,4+Math.random()*4,3,0,0,Math.PI*2); ctx.fill(); } ctx.globalAlpha=1; }
     ctx.restore();
   } else {
     ctx.save();
     const sw=attacking>0?-Math.PI*0.7+(attacking/8)*Math.PI*1.1:Math.PI*0.15+Math.sin(anim*0.2)*0.08;
     ctx.translate(14,-4+bob); ctx.rotate(sw);
-    ctx.fillStyle='#a0632a'; ctx.fillRect(-2,0,4,26);
-    ctx.fillStyle='#c8844a'; ctx.fillRect(-1,0,1,26);
-    ctx.fillStyle='#7a4a18'; ctx.fillRect(-3,24,6,4);
-    ctx.fillStyle='#d4a030'; ctx.fillRect(-9,-14,18,13);
-    ctx.fillStyle='#f0c050'; ctx.fillRect(-9,-14,18,4);
-    ctx.fillStyle='#9a7010'; ctx.fillRect(7,-13,2,11);
-    ctx.fillStyle='#c0c0c0'; ctx.fillRect(-9,-7,18,3);
-    ctx.fillStyle='#e8e8e8'; ctx.fillRect(-9,-7,18,1);
+    ctx.fillStyle='#a0632a'; ctx.fillRect(-2,0,4,26); ctx.fillStyle='#c8844a'; ctx.fillRect(-1,0,1,26); ctx.fillStyle='#7a4a18'; ctx.fillRect(-3,24,6,4);
+    ctx.fillStyle='#d4a030'; ctx.fillRect(-9,-14,18,13); ctx.fillStyle='#f0c050'; ctx.fillRect(-9,-14,18,4); ctx.fillStyle='#9a7010'; ctx.fillRect(7,-13,2,11);
+    ctx.fillStyle='#c0c0c0'; ctx.fillRect(-9,-7,18,3); ctx.fillStyle='#e8e8e8'; ctx.fillRect(-9,-7,18,1);
     if(attacking>4){ ctx.fillStyle='rgba(255,240,80,0.85)'; ctx.fillRect(-11,-16,22,5); }
     ctx.restore();
   }
@@ -657,11 +594,9 @@ function drawBenguin(x,y,dir,anim,attacking,invincible,isEvil=false,flaming=fals
 function drawRat(x,y,dir,anim,hp,maxHp){
   ctx.save(); ctx.translate(x,y); if(dir<0)ctx.scale(-1,1);
   const bob=Math.sin(anim*0.4)*1.5;
-  ctx.fillStyle='#888'; ctx.fillRect(-10,-6+bob,20,12);
-  ctx.fillStyle='#999'; ctx.fillRect(7,-8+bob,10,9);
+  ctx.fillStyle='#888'; ctx.fillRect(-10,-6+bob,20,12); ctx.fillStyle='#999'; ctx.fillRect(7,-8+bob,10,9);
   ctx.fillStyle='#cc8888'; ctx.fillRect(9,-12+bob,4,5); ctx.fillRect(13,-12+bob,4,5);
-  ctx.fillStyle='#e63946'; ctx.fillRect(16,-5+bob,3,2);
-  ctx.fillStyle='#ff2222'; ctx.fillRect(14,-7+bob,3,3);
+  ctx.fillStyle='#e63946'; ctx.fillRect(16,-5+bob,3,2); ctx.fillStyle='#ff2222'; ctx.fillRect(14,-7+bob,3,3);
   ctx.fillStyle='#666'; ctx.fillRect(-14,-1+bob,10,3); ctx.fillRect(-20,1+bob,8,2);
   ctx.fillStyle='#777'; ctx.fillRect(-6,5+bob,4,5); ctx.fillRect(2,5+bob,4,5);
   ctx.fillStyle='#333'; ctx.fillRect(-12,-18,24,3);
@@ -672,16 +607,11 @@ function drawRat(x,y,dir,anim,hp,maxHp){
 function drawBanana(drop){
   const bob=Math.sin(drop.anim*0.15)*3;
   ctx.save(); ctx.translate(drop.x,drop.y+bob);
-  ctx.strokeStyle='#e8c800'; ctx.lineWidth=7; ctx.lineCap='round';
-  ctx.beginPath(); ctx.arc(0,2,8,-Math.PI*0.1,Math.PI*0.9); ctx.stroke();
-  ctx.strokeStyle='#ffd700'; ctx.lineWidth=5;
-  ctx.beginPath(); ctx.arc(0,2,8,-Math.PI*0.1,Math.PI*0.9); ctx.stroke();
+  ctx.strokeStyle='#e8c800'; ctx.lineWidth=7; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(0,2,8,-Math.PI*0.1,Math.PI*0.9); ctx.stroke();
+  ctx.strokeStyle='#ffd700'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(0,2,8,-Math.PI*0.1,Math.PI*0.9); ctx.stroke();
   ctx.fillStyle='#a07800'; ctx.fillRect(-7,-1,3,3); ctx.fillRect(6,8,3,3);
-  ctx.strokeStyle='#fff8cc'; ctx.lineWidth=2; ctx.globalAlpha=0.5;
-  ctx.beginPath(); ctx.arc(0,2,6,0.1,Math.PI*0.7); ctx.stroke();
-  ctx.globalAlpha=0.2+Math.sin(drop.anim*0.2)*0.1;
-  ctx.fillStyle='#ffe033'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
-  ctx.globalAlpha=1;
+  ctx.strokeStyle='#fff8cc'; ctx.lineWidth=2; ctx.globalAlpha=0.5; ctx.beginPath(); ctx.arc(0,2,6,0.1,Math.PI*0.7); ctx.stroke();
+  ctx.globalAlpha=0.2+Math.sin(drop.anim*0.2)*0.1; ctx.fillStyle='#ffe033'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
   ctx.restore();
 }
 
@@ -690,9 +620,7 @@ function drawPatches(boss){
   const shake=boss.shakeTimer>0?(Math.random()-0.5)*6:0;
   ctx.translate(boss.x+shake,boss.y); if(boss.dir<0)ctx.scale(-1,1);
   const bob=Math.sin(boss.anim*0.2)*4, ph=boss.phase;
-  ctx.save(); ctx.globalAlpha=0.28+Math.sin(boss.anim*0.4)*0.12;
-  ctx.fillStyle=['rgba(255,160,0,0.6)','rgba(255,80,0,0.7)','rgba(255,0,0,0.8)'][ph];
-  ctx.beginPath(); ctx.arc(0,bob,54,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+  ctx.save(); ctx.globalAlpha=0.28+Math.sin(boss.anim*0.4)*0.12; ctx.fillStyle=['rgba(255,160,0,0.6)','rgba(255,80,0,0.7)','rgba(255,0,0,0.8)'][ph]; ctx.beginPath(); ctx.arc(0,bob,54,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; ctx.restore();
   ctx.fillStyle='#c07030'; ctx.fillRect(-20,14+bob,12,10); ctx.fillRect(8,14+bob,12,10);
   ctx.fillStyle='#e8b878'; ctx.beginPath(); ctx.ellipse(-14,26+bob,8,4,0,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(14,26+bob,8,4,0,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#d4924a'; ctx.beginPath(); ctx.ellipse(0,8+bob,26,20,0,0,Math.PI*2); ctx.fill();
@@ -709,8 +637,7 @@ function drawPatches(boss){
   ctx.fillStyle='#c04070'; ctx.beginPath(); ctx.arc(-2,-12+bob,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(2,-12+bob,2,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#a03050'; ctx.fillRect(-1,-8+bob,2,3);
   ctx.strokeStyle='#ffffffcc'; ctx.lineWidth=1.5;
-  [[5,-11,28,-8],[5,-12,26,-14],[5,-10,27,-6],[-5,-11,-28,-8],[-5,-12,-26,-14],[-5,-10,-27,-6]].forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1+bob); ctx.lineTo(x2,y2+bob); ctx.stroke(); });
-  ctx.lineWidth=1;
+  [[5,-11,28,-8],[5,-12,26,-14],[5,-10,27,-6],[-5,-11,-28,-8],[-5,-12,-26,-14],[-5,-10,-27,-6]].forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1+bob); ctx.lineTo(x2,y2+bob); ctx.stroke(); }); ctx.lineWidth=1;
   ctx.fillStyle='#1a0800'; ctx.beginPath(); ctx.arc(10,-24+bob,7,0,Math.PI*2); ctx.fill();
   const eyeGlow=['#ff8844','#ff4400','#ff0000'][ph];
   ctx.fillStyle=eyeGlow; ctx.beginPath(); ctx.arc(10,-24+bob,5,0,Math.PI*2); ctx.fill();
@@ -720,8 +647,7 @@ function drawPatches(boss){
   ctx.fillStyle='#2a1808'; ctx.fillRect(-20,-28+bob,22,3);
   ctx.fillStyle='#1e1208'; ctx.beginPath(); ctx.ellipse(-10,-24+bob,9,7,0,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#2e1c10'; ctx.beginPath(); ctx.ellipse(-10,-25+bob,7,5,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#4a3020';
-  for(let i=0;i<6;i++){ const a=(i/6)*Math.PI*2; ctx.fillRect(-10+Math.cos(a)*8-1,-24+bob+Math.sin(a)*6-1,2,2); }
+  ctx.fillStyle='#4a3020'; for(let i=0;i<6;i++){ const a=(i/6)*Math.PI*2; ctx.fillRect(-10+Math.cos(a)*8-1,-24+bob+Math.sin(a)*6-1,2,2); }
   ctx.fillStyle='#666'; ctx.beginPath(); ctx.arc(-10,-25+bob,3,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#1e1208'; ctx.fillRect(-12,-25+bob,2,2); ctx.fillRect(-9,-25+bob,2,2); ctx.fillRect(-11,-22+bob,4,1);
   ctx.fillStyle='#ffd700'; ctx.fillRect(-13,-48+bob,26,9); ctx.fillRect(-13,-57+bob,6,10); ctx.fillRect(-4,-62+bob,8,15); ctx.fillRect(7,-57+bob,6,10);
@@ -737,14 +663,49 @@ function drawPatches(boss){
   ctx.restore();
 }
 
+function drawRatKing(rk){
+  ctx.save();
+  const shake=rk.shakeTimer>0?(Math.random()-0.5)*7:0;
+  ctx.translate(rk.x+shake,rk.y); if(rk.dir<0)ctx.scale(-1,1);
+  const bob=Math.sin(rk.anim*0.18)*4, ph=rk.phase;
+  const auraCol=['rgba(180,0,40,0.3)','rgba(220,0,20,0.5)','rgba(255,0,0,0.7)'][ph];
+  ctx.save(); ctx.globalAlpha=0.3+Math.sin(rk.anim*0.4)*0.15; ctx.fillStyle=auraCol; ctx.beginPath(); ctx.arc(0,bob,52,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+  ctx.fillStyle='#444'; ctx.fillRect(-24,12+bob,14,5); ctx.fillRect(-30,15+bob,10,4); ctx.fillRect(16,12+bob,14,5); ctx.fillRect(24,15+bob,10,4); ctx.fillRect(-8,20+bob,18,5);
+  ctx.fillStyle='#5a5a5a'; ctx.fillRect(-22,-12+bob,44,28);
+  ctx.fillStyle='#7a7a7a'; ctx.fillRect(-13,-7+bob,26,18);
+  ctx.fillStyle='#333'; ctx.fillRect(-9,-5+bob,2,10); ctx.fillRect(6,-3+bob,2,8); ctx.fillRect(-3,2+bob,2,5);
+  ctx.fillStyle='#666'; ctx.fillRect(-18,-36+bob,36,26);
+  ctx.fillStyle='#555'; ctx.fillRect(12,-28+bob,14,12);
+  ctx.fillStyle='#cc2222'; ctx.fillRect(24,-23+bob,6,5);
+  ctx.strokeStyle='#aaa'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(12,-19+bob); ctx.lineTo(30,-16+bob); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(12,-22+bob); ctx.lineTo(28,-20+bob); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-6,-19+bob); ctx.lineTo(-24,-16+bob); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-6,-22+bob); ctx.lineTo(-22,-20+bob); ctx.stroke();
+  const eyeCol=['#ff4444','#ff2200','#ff0000'][ph];
+  ctx.fillStyle='#1a0000'; ctx.fillRect(-12,-32+bob,10,10); ctx.fillRect(2,-32+bob,10,10);
+  ctx.fillStyle=eyeCol; ctx.fillRect(-11,-31+bob,8,8); ctx.fillRect(3,-31+bob,8,8);
+  ctx.fillStyle='#fff'; ctx.fillRect(-9,-29+bob,3,3); ctx.fillRect(5,-29+bob,3,3);
+  ctx.globalAlpha=0.5+Math.sin(rk.anim*0.8)*0.3; ctx.fillStyle=eyeCol; ctx.beginPath(); ctx.arc(-7,-27+bob,6,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(7,-27+bob,6,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+  ctx.fillStyle='#4a4a4a'; ctx.fillRect(-20,-44+bob,10,12); ctx.fillRect(10,-44+bob,10,12);
+  ctx.fillStyle='#883333'; ctx.fillRect(-18,-42+bob,7,9); ctx.fillRect(11,-42+bob,7,9);
+  ctx.fillStyle='#ffd700'; ctx.fillRect(-16,-52+bob,32,12); ctx.fillRect(-16,-66+bob,8,16); ctx.fillRect(-4,-72+bob,8,22); ctx.fillRect(8,-66+bob,8,16);
+  ctx.fillStyle='#e63946'; ctx.fillRect(-13,-58+bob,5,5); ctx.fillRect(8,-58+bob,5,5);
+  ctx.fillStyle='#44ddff'; ctx.fillRect(-1,-62+bob,5,5);
+  ctx.fillStyle='rgba(255,255,220,0.55)'; ctx.fillRect(-15,-51+bob,30,4);
+  ctx.fillStyle='#4a4a4a'; ctx.fillRect(-16,15+bob,9,10); ctx.fillRect(7,15+bob,9,10);
+  ctx.fillStyle='#333'; ctx.fillRect(-18,24+bob,12,6); ctx.fillRect(6,24+bob,12,6);
+  ctx.fillStyle='#555'; ctx.fillRect(-18,24+bob,2,8); ctx.fillRect(-14,24+bob,2,7); ctx.fillRect(-10,24+bob,2,6); ctx.fillRect(6,24+bob,2,8); ctx.fillRect(10,24+bob,2,7); ctx.fillRect(14,24+bob,2,6);
+  if(rk.charging){ ctx.globalAlpha=0.45+Math.sin(Date.now()*0.05)*0.35; ctx.fillStyle='#ff0000'; ctx.beginPath(); ctx.arc(0,bob,56,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+  const bw=72,bh=7; ctx.fillStyle='#330000'; ctx.fillRect(-bw/2,-82+bob,bw,bh);
+  const pct=rk.hp/rk.maxHp; ctx.fillStyle=pct>0.66?'#e63946':pct>0.33?'#ff8800':'#ff2222'; ctx.fillRect(-bw/2,-82+bob,bw*pct,bh);
+  ctx.strokeStyle='#660000'; ctx.lineWidth=1; ctx.strokeRect(-bw/2,-82+bob,bw,bh);
+  ctx.fillStyle='rgba(255,215,0,0.9)'; ctx.fillRect(-bw/2+bw*0.33-1,-82+bob,2,bh); ctx.fillRect(-bw/2+bw*0.66-1,-82+bob,2,bh);
+  ctx.restore();
+}
+
 function drawNebguinFlames(nb){
-  nb.flames.forEach(f=>{
-    ctx.globalAlpha=Math.min(1,f.life/f.maxLife)*0.85;
-    const t=1-f.life/f.maxLife;
-    ctx.fillStyle=t<0.4?'#ffcc00':t<0.7?'#ff6600':'#cc1100';
-    ctx.beginPath(); ctx.arc(f.x,f.y,f.size*(1-t*0.6),0,Math.PI*2); ctx.fill();
-  });
-  ctx.globalAlpha=1;
+  nb.flames.forEach(f=>{ ctx.globalAlpha=Math.min(1,f.life/f.maxLife)*0.85; const t=1-f.life/f.maxLife; ctx.fillStyle=t<0.4?'#ffcc00':t<0.7?'#ff6600':'#cc1100'; ctx.beginPath(); ctx.arc(f.x,f.y,f.size*(1-t*0.6),0,Math.PI*2); ctx.fill(); }); ctx.globalAlpha=1;
 }
 
 function draw(){
@@ -766,8 +727,7 @@ function draw(){
         ctx.beginPath(); ctx.moveTo(tx+6,ty+20); ctx.lineTo(tx+12,ty+26); ctx.stroke();
         ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(tx+8,ty+13,3,3); ctx.fillRect(tx+14,ty+19,2,2); ctx.fillRect(tx+19,ty+21,2,2);
         ctx.fillStyle='rgba(255,200,100,0.15)'; ctx.fillRect(tx,ty,TILE,TILE);
-        ctx.fillStyle='rgba(255,220,0,0.7)'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
-        ctx.fillText('!',tx+TILE/2,ty+TILE-4);
+        ctx.fillStyle='rgba(255,220,0,0.7)'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.fillText('!',tx+TILE/2,ty+TILE-4);
       } else if(rawTile===3){
         ctx.fillStyle='#002244'; ctx.fillRect(tx,ty,TILE,TILE);
         ctx.fillStyle='rgba(0,100,255,0.3)'; ctx.fillRect(tx+4,ty+4,TILE-8,TILE-8);
@@ -785,57 +745,46 @@ function draw(){
         ctx.fillStyle=COLOURS.floor[(r+c)%3]; ctx.fillRect(tx,ty,TILE,TILE);
         if((r+c)%4===0){ ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(tx+10,ty+10,6,6); }
         if(room.boss&&!room.boss.dead){ ctx.fillStyle='rgba(100,0,0,0.12)'; ctx.fillRect(tx,ty,TILE,TILE); }
-        if(room.isSecret){ ctx.fillStyle='rgba(0,0,60,0.18)'; ctx.fillRect(tx,ty,TILE,TILE); }
+        if(room.isSecret&&room.def.secretType==='nebguin'){ ctx.fillStyle='rgba(0,0,60,0.18)'; ctx.fillRect(tx,ty,TILE,TILE); }
+        if(room.isSecret&&room.def.secretType==='boiler'){ ctx.fillStyle='rgba(60,20,0,0.2)'; ctx.fillRect(tx,ty,TILE,TILE); }
       }
     }
   }
 
   if(!room.doorOpen&&!room.isSecret){
     const dx=room.doorCol*TILE,dy=room.doorRow*TILE;
-    ctx.fillStyle='#8B4513'; ctx.fillRect(dx,dy,TILE,TILE);
-    ctx.fillStyle='#5C2D0A'; ctx.fillRect(dx+6,dy+4,TILE-12,TILE-8);
-    ctx.fillStyle='#ffd700'; ctx.fillRect(dx+TILE-8,dy+TILE/2-2,4,4);
+    ctx.fillStyle='#8B4513'; ctx.fillRect(dx,dy,TILE,TILE); ctx.fillStyle='#5C2D0A'; ctx.fillRect(dx+6,dy+4,TILE-12,TILE-8); ctx.fillStyle='#ffd700'; ctx.fillRect(dx+TILE-8,dy+TILE/2-2,4,4);
   } else if(room.doorOpen&&!room.isSecret){
     const dx=room.doorCol*TILE,dy=room.doorRow*TILE;
-    ctx.fillStyle='#0a0500'; ctx.fillRect(dx,dy,TILE,TILE);
-    ctx.fillStyle='rgba(255,215,0,0.3)'; ctx.fillRect(dx+2,dy+2,TILE-4,TILE-4);
+    ctx.fillStyle='#0a0500'; ctx.fillRect(dx,dy,TILE,TILE); ctx.fillStyle='rgba(255,215,0,0.3)'; ctx.fillRect(dx+2,dy+2,TILE-4,TILE-4);
   }
 
   room.rats.forEach(rat=>{ if(!rat.dead) drawRat(rat.x,rat.y,rat.dir,rat.anim,rat.hp,rat.maxHp); });
   room.healthDrops.forEach(drop=>{ drawBanana(drop); });
   if(room.boss&&!room.boss.dead) drawPatches(room.boss);
+  if(room.ratKing&&!room.ratKing.dead) drawRatKing(room.ratKing);
   if(room.nebguin&&!room.nebguin.dead) drawNebguinFlames(room.nebguin);
   if(room.nebguin&&!room.nebguin.dead) drawBenguin(room.nebguin.x,room.nebguin.y,room.nebguin.dir,room.nebguin.anim,0,0,true,room.nebguin.flaming);
 
   state.particles.forEach(p=>{
     ctx.globalAlpha=Math.min(1,p.life/30);
-    if(p.isFire){
-      const t=1-p.life/32;
-      ctx.fillStyle=t<0.3?'#ffcc00':t<0.6?'#ff6600':'#cc1100';
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(1-t*0.5),0,Math.PI*2); ctx.fill();
-    } else if(p.text){
-      ctx.fillStyle=p.col; ctx.font='bold 10px "Press Start 2P",monospace'; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y);
-    } else {
-      ctx.fillStyle=p.col; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
-    }
+    if(p.isFire){ const t=1-p.life/32; ctx.fillStyle=t<0.3?'#ffcc00':t<0.6?'#ff6600':'#cc1100'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(1-t*0.5),0,Math.PI*2); ctx.fill(); }
+    else if(p.text){ ctx.fillStyle=p.col; ctx.font='bold 10px "Press Start 2P",monospace'; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y); }
+    else { ctx.fillStyle=p.col; ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size); }
   });
   ctx.globalAlpha=1;
 
   const usingFlame=player.weapon==='flamethrower'&&player.attackCooldown>16;
   drawBenguin(player.x,player.y,player.dir,player.anim,player.attackTimer,player.invincible,false,usingFlame);
 
-  if(player.attackTimer>0&&player.weapon==='mallet'){
-    ctx.strokeStyle='rgba(255,200,0,0.25)'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
-    ctx.beginPath(); ctx.arc(player.x,player.y,55,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
-  }
+  if(player.attackTimer>0&&player.weapon==='mallet'){ ctx.strokeStyle='rgba(255,200,0,0.25)'; ctx.lineWidth=2; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.arc(player.x,player.y,55,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
 
   ctx.restore();
 
-  const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
-  vg.addColorStop(0,'transparent'); vg.addColorStop(1,'rgba(0,0,0,0.6)');
-  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8); vg.addColorStop(0,'transparent'); vg.addColorStop(1,'rgba(0,0,0,0.6)'); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
   if(room.boss&&!room.boss.dead){ const bv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); bv.addColorStop(0,'transparent'); bv.addColorStop(1,'rgba(120,0,0,0.4)'); ctx.fillStyle=bv; ctx.fillRect(0,0,W,H); }
-  if(room.isSecret){ const sv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); sv.addColorStop(0,'transparent'); sv.addColorStop(1,'rgba(0,0,120,0.45)'); ctx.fillStyle=sv; ctx.fillRect(0,0,W,H); }
+  if(room.isSecret&&room.def.secretType==='nebguin'){ const sv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); sv.addColorStop(0,'transparent'); sv.addColorStop(1,'rgba(0,0,120,0.45)'); ctx.fillStyle=sv; ctx.fillRect(0,0,W,H); }
+  if(room.isSecret&&room.def.secretType==='boiler'){ const bv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); bv.addColorStop(0,'transparent'); bv.addColorStop(1,'rgba(80,20,0,0.55)'); ctx.fillStyle=bv; ctx.fillRect(0,0,W,H); }
 }
 </script>
 </body>
