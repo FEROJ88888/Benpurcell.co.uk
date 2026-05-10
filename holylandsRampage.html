@@ -2,9 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Quotes - Ben Purcell</title>
+    <title>BENGUIN: Holylands Rampage - Ben Purcell</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="./assets/style.css">
+    <style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  /* Match assets/style.css header { height: 64px } so overlays leave the nav visible */
+  :root { --site-header-height: 64px; }
+  .holylands-rampage-main * { margin:0; padding:0; box-sizing:border-box; }
+  .holylands-rampage-main {
+    flex: 1 0 auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    background: #0a0a0f;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  #game-wrapper { position:relative; display:flex; flex-direction:column; align-items:center; gap:0; }
+  #title-screen { position:fixed; top:var(--site-header-height); left:0; right:0; bottom:0; background:#0a0a0f; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:20px; }
+  #title-screen h1 { font-size:28px; color:#e63946; text-shadow:4px 4px 0 #7a0010,0 0 30px #e63946; animation:pulse 1.5s infinite; letter-spacing:4px; }
+  #title-screen .subtitle { font-size:9px; color:#aaa; text-align:center; line-height:2; }
+  #title-screen .start-btn { margin-top:20px; background:#e63946; color:#fff; border:none; padding:14px 28px; font-family:'Press Start 2P',monospace; font-size:12px; cursor:pointer; animation:blink 1s infinite; }
+  #title-screen .start-btn:hover { background:#ff6b6b; }
+  @keyframes pulse { 0%,100%{text-shadow:4px 4px 0 #7a0010,0 0 30px #e63946}50%{text-shadow:4px 4px 0 #7a0010,0 0 60px #ff6b6b} }
+  @keyframes blink { 50%{opacity:0} }
+  #hud { width:600px; display:flex; justify-content:space-between; align-items:center; font-size:7px; padding:4px 8px; background:#111; border:2px solid #333; }
+  #hud .hp-bar-wrap { display:flex; align-items:center; gap:6px; }
+  #hud .hp-bar { width:100px; height:10px; background:#333; border:1px solid #555; }
+  #hud .hp-fill { height:100%; background:#e63946; transition:width 0.2s; }
+  #weapon-indicator { font-size:6px; color:#ff8800; }
+  #boss-hud { width:600px; background:#1a0000; border:2px solid #9a0020; border-top:none; padding:5px 10px; display:none; }
+  #boss-hud .boss-title { font-size:7px; color:#ffd700; text-align:center; letter-spacing:3px; text-shadow:0 0 10px #ffd700; margin-bottom:4px; }
+  #boss-bar-wrap { background:#330000; height:16px; border:1px solid #660000; position:relative; }
+  #boss-hp-fill { height:100%; background:linear-gradient(90deg,#7a0010,#e63946,#ff4444); transition:width 0.15s; }
+  #boss-phase-txt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:5px; color:#fff; letter-spacing:1px; }
+  canvas { display:block; border:3px solid #333; image-rendering:pixelated; background:#1a0a00; }
+  #controls { font-size:6px; color:#666; text-align:center; line-height:2.2; margin-top:6px; }
+  #message-box { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); border:2px solid #e63946; padding:8px 16px; font-size:7px; color:#e63946; pointer-events:none; opacity:0; transition:opacity 0.3s; white-space:nowrap; z-index:10; }
+  #game-over-screen,#win-screen { position:fixed; top:var(--site-header-height); left:0; right:0; bottom:0; background:rgba(0,0,0,0.92); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:20px; }
+  #game-over-screen h2 { font-size:24px; color:#e63946; }
+  #win-screen h2 { font-size:18px; color:#ffd700; text-shadow:0 0 20px #ffd700; }
+  .restart-btn { background:#e63946; color:#fff; border:none; padding:12px 24px; font-family:'Press Start 2P',monospace; font-size:10px; cursor:pointer; }
+  .restart-btn:hover { background:#ff6b6b; }
+  .room-label { font-size:7px; color:#888; }
+  #boss-intro { position:fixed; top:var(--site-header-height); left:0; right:0; bottom:0; background:rgba(0,0,0,0); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; pointer-events:none; }
+  #boss-intro h2 { font-size:22px; color:#ffd700; text-shadow:0 0 30px #ffd700,0 0 60px #e63946; opacity:0; transition:opacity 0.5s; letter-spacing:4px; }
+  #boss-intro p { font-size:8px; color:#e63946; opacity:0; transition:opacity 0.5s 0.3s; margin-top:10px; text-align:center; line-height:2; }
+    </style>
 </head>
 <body>
     <header>
@@ -25,48 +74,7 @@
         </nav>
         <div class="user-actions" id="user-actions"></div>
     </header>
-    <main class="quotes-main">
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>BENGUIN: Holylands Rampage</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0a0a0f; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Press Start 2P',monospace; color:#fff; overflow:hidden; }
-  #game-wrapper { position:relative; display:flex; flex-direction:column; align-items:center; gap:0; }
-  #title-screen { position:fixed; inset:0; background:#0a0a0f; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:20px; }
-  #title-screen h1 { font-size:28px; color:#e63946; text-shadow:4px 4px 0 #7a0010,0 0 30px #e63946; animation:pulse 1.5s infinite; letter-spacing:4px; }
-  #title-screen .subtitle { font-size:9px; color:#aaa; text-align:center; line-height:2; }
-  #title-screen .start-btn { margin-top:20px; background:#e63946; color:#fff; border:none; padding:14px 28px; font-family:'Press Start 2P',monospace; font-size:12px; cursor:pointer; animation:blink 1s infinite; }
-  #title-screen .start-btn:hover { background:#ff6b6b; }
-  @keyframes pulse { 0%,100%{text-shadow:4px 4px 0 #7a0010,0 0 30px #e63946}50%{text-shadow:4px 4px 0 #7a0010,0 0 60px #ff6b6b} }
-  @keyframes blink { 50%{opacity:0} }
-  #hud { width:600px; display:flex; justify-content:space-between; align-items:center; font-size:7px; padding:4px 8px; background:#111; border:2px solid #333; }
-  #hud .hp-bar-wrap { display:flex; align-items:center; gap:6px; }
-  #hud .hp-bar { width:100px; height:10px; background:#333; border:1px solid #555; }
-  #hud .hp-fill { height:100%; background:#e63946; transition:width 0.2s; }
-  #weapon-indicator { font-size:6px; color:#ff8800; }
-  #boss-hud { width:600px; background:#1a0000; border:2px solid #9a0020; border-top:none; padding:5px 10px; display:none; }
-  #boss-hud .boss-title { font-size:7px; color:#ffd700; text-align:center; letter-spacing:3px; text-shadow:0 0 10px #ffd700; margin-bottom:4px; }
-  #boss-bar-wrap { background:#330000; height:16px; border:1px solid #660000; position:relative; }
-  #boss-hp-fill { height:100%; background:linear-gradient(90deg,#7a0010,#e63946,#ff4444); transition:width 0.15s; }
-  #boss-phase-txt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:5px; color:#fff; letter-spacing:1px; }
-  canvas { display:block; border:3px solid #333; image-rendering:pixelated; background:#1a0a00; }
-  #controls { font-size:6px; color:#666; text-align:center; line-height:2.2; margin-top:6px; }
-  #message-box { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); border:2px solid #e63946; padding:8px 16px; font-size:7px; color:#e63946; pointer-events:none; opacity:0; transition:opacity 0.3s; white-space:nowrap; z-index:10; }
-  #game-over-screen,#win-screen { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:20px; }
-  #game-over-screen h2 { font-size:24px; color:#e63946; }
-  #win-screen h2 { font-size:18px; color:#ffd700; text-shadow:0 0 20px #ffd700; }
-  .restart-btn { background:#e63946; color:#fff; border:none; padding:12px 24px; font-family:'Press Start 2P',monospace; font-size:10px; cursor:pointer; }
-  .restart-btn:hover { background:#ff6b6b; }
-  .room-label { font-size:7px; color:#888; }
-  #boss-intro { position:fixed; inset:0; background:rgba(0,0,0,0); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; pointer-events:none; }
-  #boss-intro h2 { font-size:22px; color:#ffd700; text-shadow:0 0 30px #ffd700,0 0 60px #e63946; opacity:0; transition:opacity 0.5s; letter-spacing:4px; }
-  #boss-intro p { font-size:8px; color:#e63946; opacity:0; transition:opacity 0.5s 0.3s; margin-top:10px; text-align:center; line-height:2; }
-</style>
-</head>
-<body>
+    <main class="holylands-rampage-main">
 
 <div id="title-screen">
   <h1>&#x1F427; BENGUIN</h1>
@@ -787,8 +795,6 @@ function draw(){
   if(room.isSecret&&room.def.secretType==='boiler'){ const bv=ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95); bv.addColorStop(0,'transparent'); bv.addColorStop(1,'rgba(80,20,0,0.55)'); ctx.fillStyle=bv; ctx.fillRect(0,0,W,H); }
 }
 </script>
-</body>
-</html>
     </main>
     <footer>
         <p>

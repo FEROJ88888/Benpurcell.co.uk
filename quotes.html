@@ -5,6 +5,41 @@
     <title>Quotes - Ben Purcell</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="./assets/style.css">
+    <script>
+        // Example: basic script to simulate log in/out and update user info
+        document.addEventListener("DOMContentLoaded", function () {
+            const userActions = document.getElementById('user-actions');
+            let userName = null;
+
+            function renderUserActions() {
+                if (userName) {
+                    userActions.innerHTML = `
+                        <span>Welcome, <strong>${userName}</strong></span>
+                        <button id="logout-btn">Logout</button>
+                    `;
+                    document.getElementById('logout-btn').onclick = function () {
+                        userName = null;
+                        renderUserActions();
+                    }
+                } else {
+                    userActions.innerHTML = `
+                        <button id="login-btn">Login</button>
+                        <button id="signup-btn">Sign Up</button>
+                    `;
+                    document.getElementById('login-btn').onclick = function () {
+                        userName = "DemoUser";
+                        renderUserActions();
+                    }
+                    document.getElementById('signup-btn').onclick = function () {
+                        userName = "NewUser";
+                        renderUserActions();
+                    }
+                }
+            }
+
+            renderUserActions();
+        });
+    </script>
 </head>
 <body>
     <header>
@@ -17,7 +52,7 @@
         <nav class="tabs">
             <ul>
                 <li><a href="./index.html">Home</a></li>
-                <li><a href="./pics.html">Pics</a></li>
+                <li><a href="./games.html">Pics</a></li>
                 <li><a href="./pricing.html">Pricing</a></li>
                 <li><a href="./about.html">About</a></li>
                 <li class="active"><a href="./quotes.html">Quotes</a></li>
