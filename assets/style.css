@@ -5,7 +5,8 @@ body {
     display: flex;
     flex-direction: column;
 }
-header {
+/* Site nav only — avoid styling <header> inside <main> (e.g. about page title) */
+body > header {
     background: #222;
     color: #fff;
     display: flex;
@@ -175,6 +176,57 @@ main {
     color: rgba(255,255,255,0.6);
     font-style: normal;
     font-weight: bold;
+}
+
+.about-main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 72px;
+}
+.about-page-header {
+    text-align: center;
+    margin-bottom: 36px;
+}
+.about-page-header h1 {
+    font-size: 2rem;
+    color: #222;
+    margin: 0 0 8px;
+    line-height: 1.2;
+}
+.about-page-header .about-deck {
+    font-size: 1.05rem;
+    color: #555;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.5;
+}
+.about-article {
+    background: #fff;
+    color: #333;
+    border-radius: 16px;
+    padding: 40px 36px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border-left: 5px solid #e94560;
+}
+.about-article h2 {
+    font-size: 1.35rem;
+    color: #1a1a2e;
+    margin: 2rem 0 1rem;
+    font-weight: 700;
+}
+.about-article h2:first-of-type {
+    margin-top: 0;
+}
+.about-article p {
+    margin: 0 0 1rem;
+    line-height: 1.75;
+    font-size: 1.05rem;
+}
+.about-article p:last-child {
+    margin-bottom: 0;
+}
+.about-article strong {
+    color: #222;
 }
 
 .chat-widget {

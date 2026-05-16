@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>The Home of Ben Purcell</title>
+    <title>About - Ben Purcell</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="./assets/style.css">
     <script>
@@ -26,7 +26,7 @@
                     userActions.innerHTML = `
                         <button id="login-btn">Login</button>
                         <button id="signup-btn">Sign Up</button>
-                    `;
+                    `
                     document.getElementById('login-btn').onclick = function () {
                         userName = "DemoUser";
                         renderUserActions();
@@ -63,19 +63,65 @@
         </nav>
         <div class="user-actions" id="user-actions"></div>
     </header>
-    <main>
+    <main class="about-main">
+        <header class="about-page-header">
+            <h1>I Was Sheltered, Then the World Was Sheltered From Me</h1>
+        </header>
+        <article class="about-article">
+            <p>My name is Benguin. Not Benjamin. Not Benny. <strong>Benguin.</strong> My parents chose it during a power
+                outage at the maternity ward, by candlelight, while eating leftover sufganiyot from someone else’s
+                Hanukkah party. The nurse misheard “Benjamin” over a crackling radio playing a nature documentary about
+                emperor penguins. By the time anyone noticed, the paperwork had already been laminated.</p>
 
+            <h2>Kfar Ha’Matzil</h2>
+            <p>I grew up in <strong>Kfar Ha’Matzil</strong>, a small community tucked behind three hills, a misplaced
+                bus stop, and a rumor that there used to be a falafel stand “somewhere near the second cactus.” People
+                called our area “sheltered,” which I thought meant we were protected. Later I learned it mostly meant we
+                were hard to explain on a map.</p>
+            <p>Our house was number <strong>14½</strong>, because the municipality ran out of integers in the 1990s and
+                issued fractions instead of admitting a planning error. We had a garden, a lemon tree that only produced
+                suspiciously square fruit, and a clothesline that doubled as the neighborhood Wi‑Fi antenna whenever
+                Uncle Yoram visited with his “experimental router” and a roll of aluminum foil.</p>
+
+            <h2>Beit Sefer Al Ha’Kir</h2>
+            <p>School was <strong>Beit Sefer Al Ha’Kir</strong>—literally “The School on the Wall,” because one side of
+                the building was technically built against a retaining wall that predated the founding of the state, the
+                school, and possibly gravity. The classrooms smelled like chalk, wet wool, and the ghost of someone’s
+                sandwich from 1987. Our science lab had three microscopes and seventeen mismatched chairs, which taught
+                us early that observation is 90% squinting.</p>
+            <p>My best friend was <strong>Nitzan</strong>, who claimed he could identify clouds by taste. Our principal,
+                <strong>Mrs. Levkowitz</strong>, enforced silence in the hallways using a bell that had once belonged to
+                a ship. The PE teacher made us run laps around the parking lot while shouting motivational slogans he
+                translated badly from English, such as “Pain is just bread forgetting it is toast.”
+            </p>
+
+            <h2>Indoor geography and other triumphs</h2>
+            <p>Academically, I excelled at <strong>“Indoor Geography,”</strong> a subject invented when the roof leaked
+                and we had to memorize the locations of buckets. I struggled with math until I realized the teacher was
+                grading us on confidence rather than correctness. My crowning achievement was the <strong>Purim costume
+                    incident</strong>, where I went as “A Penguin Who Made Aliyah,” which everyone misinterpreted as
+                political commentary. It wasn’t. I just liked vests.</p>
+
+            <h2>After the wall</h2>
+            <p>After graduation, I left Kfar Ha’Matzil with a backpack, a laminated student ID that still smelled like
+                the wall, and a firm belief that if you squint hard enough, any dingy place looks like destiny. I did
+                not become famous. I did not become rich. I became <strong>Benguin</strong>, which—depending who you
+                ask—is either worse or exactly right.</p>
+            <p>Today I tell this story so that future children in fraction-numbered houses may know: you can come from
+                nowhere obvious and still arrive somewhere unmistakably yourself. Also, if your lemon is a cube, do not
+                ask why. Some mysteries are simply… shelved.</p>
+        </article>
     </main>
-</body>
-<footer>
-    <p>
-        &copy; 2026 Ben Purcell. All rights reserved.
-        &nbsp;|&nbsp;
-        <a href="https://www.reddit.com/r/benpurcell/" target="_blank"
-            style="vertical-align:middle; text-decoration:none;">
-            <img src="https://www.redditstatic.com/desktop2x/img/favicon/apple-icon-57x57.png" alt="Reddit"
-                style="width:20px; height:20px; vertical-align:middle; border-radius:4px; margin-right:6px;">
-            <span style="vertical-align:middle;">Visit our Reddit</span>
+    <footer>
+        <p>
+            &copy; 2026 Ben Purcell. All rights reserved.
+            &nbsp;|&nbsp;
+            <a href="https://www.reddit.com/r/benpurcell/" target="_blank"
+                style="vertical-align:middle; text-decoration:none;">
+                <img src="https://www.redditstatic.com/desktop2x/img/favicon/apple-icon-57x57.png" alt="Reddit"
+                    style="width:20px; height:20px; vertical-align:middle; border-radius:4px; margin-right:6px;">
+                <span style="vertical-align:middle;">Visit our Reddit</span>
+            </a>
             &nbsp;|&nbsp;
             <a href="https://benpurcellstourism.blogspot.com/?m=1" target="_blank"
                 style="vertical-align:middle; text-decoration:none;">
@@ -83,9 +129,8 @@
                     style="width:20px; height:20px; vertical-align:middle; border-radius:4px; margin-right:6px;">
                 <span style="vertical-align:middle;">Visit our Blog</span>
             </a>
-
-        </a>
-    </p>
-</footer>
+        </p>
+    </footer>
+</body>
 
 </html>
